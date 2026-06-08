@@ -3,14 +3,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const nuxtApp = useNuxtApp()
 
   // ─── Skip during initial client-side hydration ────────────────────
-  // During SSR→client handoff, user state may not yet be restored.
-  // Skipping here prevents the "flash to login then back" symptom.
+  // Prevents the "flash to login then back" during SSR→client handoff
   if (import.meta.client && nuxtApp.isHydrating && nuxtApp.payload.serverRendered) {
     return
   }
-
-  const publicRoutes = ['/login', '/register', '/admin/login']
-  const isPublicRoute = publicRoutes.includes(to.path)
 
   const { user, isAdmin, fetchMe } = useAuth()
 
@@ -19,22 +15,33 @@ export default defineNuxtRouteMiddleware(async (to) => {
     await fetchMe()
   }
 
-  // ─── Already logged in → redirect away from login/register pages ──
-  if (user.value && isPublicRoute) {
-    if (to.path === '/admin/login') {
-      return isAdmin.value ? navigateTo('/admin') : navigateTo('/employe')
+  const path = to.path
+
+  // ─── /admin/login : accessible à tous sauf les admins déjà connectés ──
+  // Un employé non-admin peut y accéder pour s'authentifier comme admin.
+  if (path === '/admin/login') {
+    if (user.value && isAdmin.value) {
+      return navigateTo('/admin') // déjà admin → dashboard admin
     }
-    return isAdmin.value ? navigateTo('/admin') : navigateTo('/employe')
+    return // sinon : toujours laisser passer
   }
 
-  // ─── Not logged in → redirect to login ───────────────────────────
-  if (!user.value && !isPublicRoute) {
-    if (to.path.startsWith('/admin')) return navigateTo('/admin/login')
+  // ─── /login et /register : redirige si déjà connecté ─────────────
+  if (path === '/login' || path === '/register') {
+    if (user.value) {
+      return isAdmin.value ? navigateTo('/admin') : navigateTo('/employe')
+    }
+    return
+  }
+
+  // ─── Pages protégées : doit être connecté ─────────────────────────
+  if (!user.value) {
+    if (path.startsWith('/admin')) return navigateTo('/admin/login')
     return navigateTo('/login')
   }
 
-  // ─── Logged in but not admin → block admin space ──────────────────
-  if (to.path.startsWith('/admin') && !isAdmin.value) {
+  // ─── Espace admin : réservé aux admins ────────────────────────────
+  if (path.startsWith('/admin') && !isAdmin.value) {
     return navigateTo('/employe')
   }
 })
