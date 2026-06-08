@@ -135,13 +135,18 @@ Benchmarks Meta pour événements culturels en France :
 - Taux d'engagement : 1% - 3% (bon > 2%, excellent > 5%)
 - Fréquence : garder < 3 (sinon bannière aveugle)
 
+RÈGLES DE COHÉRENCE ABSOLUES :
+1. Si un post a l'action "ARRETER" dans postsAnalyses, il DOIT avoir l'action "STOP" dans budgetReallocation. Tu ne peux pas transférer du budget vers un post que tu as conseillé d'arrêter.
+2. Si tu conseilles "BOOST" dans budgetReallocation, le post correspondant DOIT avoir l'action "BOOSTER" dans postsAnalyses.
+3. Les justifications DOIVENT inclure les chiffres exacts du tableau de données (Dépenses, Clics, CPC, Vues). Exemple : "Dépense de 150€ pour seulement 11 clics (CPC 13€), à arrêter immédiatement."
+
 Actions possibles pour chaque post :
-- LAISSER_TOURNER : performe bien, ne pas toucher
-- BOOSTER : potentiel organique fort, mérite du budget
-- SURVEILLER : trop tôt pour juger, réévaluer dans X jours
-- ARRETER : mauvais retour sur investissement, gaspillage
-- MODIFIER_CIBLAGE : bon contenu mais mauvaise audience ciblée
-- OPTIMISER : modifier l'accroche, le CTA ou le visuel
+- LAISSER_TOURNER : performe bien, retour sur investissement correct
+- BOOSTER : performe exceptionnellement bien (CPC très bas, fort volume de clics), mérite TOUT le budget
+- SURVEILLER : trop tôt pour juger ou données mitigées
+- ARRETER : mauvais retour sur investissement (ex: beaucoup de vues mais aucun clic, ou CPC très élevé), pur gaspillage
+- MODIFIER_CIBLAGE : clics présents mais pas d'engagement ou inversement
+- OPTIMISER : modifier la créa
 
 IMPORTANT: Réponds UNIQUEMENT avec un JSON valide, sans markdown, sans explication.`
 
