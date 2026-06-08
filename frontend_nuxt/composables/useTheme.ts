@@ -16,11 +16,9 @@ export const useTheme = () => {
   // Initialize theme from cookie (works on SSR too)
   const initTheme = () => {
     const saved = themeCookie.value
-    const prefersDark = import.meta.client
-      ? window.matchMedia('(prefers-color-scheme: dark)').matches
-      : false
 
-    const shouldBeDark = saved === 'dark' || (!saved && prefersDark)
+    // Par défaut : CLAIR. Sombre seulement si l'utilisateur a explicitement choisi 'dark'
+    const shouldBeDark = saved === 'dark'
     isDark.value = shouldBeDark
 
     if (import.meta.client) {
