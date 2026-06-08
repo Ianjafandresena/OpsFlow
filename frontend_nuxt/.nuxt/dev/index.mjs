@@ -2170,7 +2170,22 @@ _4s7PyUB1uoJfuNiXLt8PH7woW3GoRCrmcz6vXBA9V_0,
 _wH6JrtIxmaSoA8lCPWFnE9z4lQeXW6H5z3l5aymEQw
 ];
 
-const assets = {};
+const assets = {
+  "/index.mjs": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"2b43a-pCkIZUo7nGAWwy04SV78WUZciHs\"",
+    "mtime": "2026-06-08T08:57:34.928Z",
+    "size": 177210,
+    "path": "index.mjs"
+  },
+  "/index.mjs.map": {
+    "type": "application/json",
+    "etag": "\"a2c14-vxEpf0dHieNn/3y53CEy6nqwZQw\"",
+    "mtime": "2026-06-08T08:57:34.929Z",
+    "size": 666644,
+    "path": "index.mjs.map"
+  }
+};
 
 function readAsset (id) {
   const serverDir = dirname$1(fileURLToPath(globalThis._importMeta_.url));
@@ -3783,13 +3798,18 @@ Benchmarks Meta pour \xE9v\xE9nements culturels en France :
 - Taux d'engagement : 1% - 3% (bon > 2%, excellent > 5%)
 - Fr\xE9quence : garder < 3 (sinon banni\xE8re aveugle)
 
+R\xC8GLES DE COH\xC9RENCE ABSOLUES :
+1. Si un post a l'action "ARRETER" dans postsAnalyses, il DOIT avoir l'action "STOP" dans budgetReallocation. Tu ne peux pas transf\xE9rer du budget vers un post que tu as conseill\xE9 d'arr\xEAter.
+2. Si tu conseilles "BOOST" dans budgetReallocation, le post correspondant DOIT avoir l'action "BOOSTER" dans postsAnalyses.
+3. Les justifications DOIVENT inclure les chiffres exacts du tableau de donn\xE9es (D\xE9penses, Clics, CPC, Vues). Exemple : "D\xE9pense de 150\u20AC pour seulement 11 clics (CPC 13\u20AC), \xE0 arr\xEAter imm\xE9diatement."
+
 Actions possibles pour chaque post :
-- LAISSER_TOURNER : performe bien, ne pas toucher
-- BOOSTER : potentiel organique fort, m\xE9rite du budget
-- SURVEILLER : trop t\xF4t pour juger, r\xE9\xE9valuer dans X jours
-- ARRETER : mauvais retour sur investissement, gaspillage
-- MODIFIER_CIBLAGE : bon contenu mais mauvaise audience cibl\xE9e
-- OPTIMISER : modifier l'accroche, le CTA ou le visuel
+- LAISSER_TOURNER : performe bien, retour sur investissement correct
+- BOOSTER : performe exceptionnellement bien (CPC tr\xE8s bas, fort volume de clics), m\xE9rite TOUT le budget
+- SURVEILLER : trop t\xF4t pour juger ou donn\xE9es mitig\xE9es
+- ARRETER : mauvais retour sur investissement (ex: beaucoup de vues mais aucun clic, ou CPC tr\xE8s \xE9lev\xE9), pur gaspillage
+- MODIFIER_CIBLAGE : clics pr\xE9sents mais pas d'engagement ou inversement
+- OPTIMISER : modifier la cr\xE9a
 
 IMPORTANT: R\xE9ponds UNIQUEMENT avec un JSON valide, sans markdown, sans explication.`;
 async function analyzeMetaPage(data) {
