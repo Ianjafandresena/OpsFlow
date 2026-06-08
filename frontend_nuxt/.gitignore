@@ -3,6 +3,9 @@ node_modules/
 .pnp
 .pnp.js
 
+# Lock file — généré par Windows sans droits exec Linux, on laisse Render le recréer
+package-lock.json
+
 # Nuxt build outputs
 .nuxt/
 .output/
