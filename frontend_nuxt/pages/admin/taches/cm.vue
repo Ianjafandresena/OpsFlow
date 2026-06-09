@@ -31,9 +31,11 @@
         <option value="">Toute l'équipe</option>
         <option v-for="emp in cmEquipe" :key="emp.id" :value="emp.id">{{ emp.nom }} {{ emp.prenom }}</option>
       </select>
-      <select v-model="filters.statutTacheId" class="form-input" style="width:auto; min-width:130px;">
+      <select v-model="filters.customStatus" class="form-input" style="width:auto; min-width:130px;">
         <option value="">Tous Statuts</option>
-        <option v-for="st in statuts" :key="st.id" :value="st.id">{{ st.nom }}</option>
+        <option value="en_cours">En cours</option>
+        <option value="termine">Terminé</option>
+        <option value="en_retard">En retard</option>
       </select>
     </div>
 
@@ -74,14 +76,20 @@
             <td style="font-size:0.8125rem;">
               <div v-if="t.type_demarche">
                 Dem : {{ t.date_demande ? new Date(t.date_demande).toLocaleDateString() : '—' }}<br/>
-                Rés : <strong :style="{color: t.date_resultat && new Date(t.date_resultat) < new Date() && t.statutTache?.nom !== 'Terminé' ? 'var(--danger-color)' : 'inherit'}">
+                Rés : <strong :style="{color: t.date_resultat && new Date(t.date_resultat) < new Date() && t.statutTache?.nom !== 'Terminé' && t.statutTache?.libelle !== 'Terminé' && t.statutTache?.nom !== 'Publié' && t.statutTache?.libelle !== 'Publié' ? 'var(--danger-color)' : 'inherit'}">
                   {{ t.date_resultat ? new Date(t.date_resultat).toLocaleDateString() : 'En attente' }}
                 </strong>
+                <span v-if="t.date_resultat && new Date(t.date_resultat) < new Date() && t.statutTache?.nom !== 'Terminé' && t.statutTache?.libelle !== 'Terminé' && t.statutTache?.nom !== 'Publié' && t.statutTache?.libelle !== 'Publié'" style="font-size:0.75rem; display:block; margin-top:2px; color:var(--danger-color);">
+                  Retard: {{ calculateLateness(t.date_resultat) }}
+                </span>
               </div>
               <div v-else>
-                Envoi : <strong :style="{color: new Date(t.date_limite) < new Date() && t.statutTache?.nom !== 'Publié' && t.statutTache?.nom !== 'Terminé' ? 'var(--danger-color)' : 'inherit'}">
+                Envoi : <strong :style="{color: new Date(t.date_limite) < new Date() && t.statutTache?.nom !== 'Publié' && t.statutTache?.libelle !== 'Publié' && t.statutTache?.nom !== 'Terminé' && t.statutTache?.libelle !== 'Terminé' ? 'var(--danger-color)' : 'inherit'}">
                   {{ new Date(t.date_limite).toLocaleString([], {dateStyle:'short', timeStyle:'short'}) }}
                 </strong>
+                <span v-if="new Date(t.date_limite) < new Date() && t.statutTache?.nom !== 'Publié' && t.statutTache?.libelle !== 'Publié' && t.statutTache?.nom !== 'Terminé' && t.statutTache?.libelle !== 'Terminé'" style="font-size:0.75rem; display:block; margin-top:2px; color:var(--danger-color);">
+                  Retard: {{ calculateLateness(t.date_limite) }}
+                </span>
               </div>
             </td>
             <td>
@@ -341,7 +349,16 @@ const onConfirmExecute = async () => {
   confirmModal.value.isOpen = false
 }
 
-const filters = ref({ search:'', typeTache:'', editionId:'', employeId:'', statutTacheId:'' })
+const filters = ref({ search:'', typeTache:'', editionId:'', employeId:'', customStatus:'' })
+
+const calculateLateness = (dateLimite) => {
+  const diffMs = new Date() - new Date(dateLimite);
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays > 0) return `${diffDays} jour${diffDays > 1 ? 's' : ''}`;
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  if (diffHours > 0) return `${diffHours} heure${diffHours > 1 ? 's' : ''}`;
+  return "Moins d'une heure";
+}
 
 const getIsoTime = (d) => {
   if (!d) return ''
@@ -376,7 +393,20 @@ const filteredTasks = computed(() => {
     if (filters.value.search && !t.titre.toLowerCase().includes(filters.value.search.toLowerCase()) && !t.description?.toLowerCase().includes(filters.value.search.toLowerCase())) return false
     if (filters.value.editionId && t.editionId !== filters.value.editionId) return false
     if (filters.value.employeId && t.employeId !== filters.value.employeId) return false
-    if (filters.value.statutTacheId && t.statutTacheId !== filters.value.statutTacheId) return false
+    
+    const isTermine = t.statutTache?.nom === 'Terminé' || t.statutTache?.libelle === 'Terminé' || t.statutTache?.nom === 'Publié' || t.statutTache?.libelle === 'Publié';
+    let dateObj = t.date_limite;
+    if (t.type_demarche && t.date_resultat) dateObj = t.date_resultat;
+    const isRetard = !isTermine && new Date(dateObj) < new Date();
+    
+    if (filters.value.customStatus === 'en_cours') {
+      if (isTermine || isRetard) return false;
+    } else if (filters.value.customStatus === 'termine') {
+      if (!isTermine) return false;
+    } else if (filters.value.customStatus === 'en_retard') {
+      if (!isRetard) return false;
+    }
+    
     return true
   })
 })
