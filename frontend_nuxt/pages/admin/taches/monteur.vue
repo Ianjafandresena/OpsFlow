@@ -20,9 +20,11 @@
         <option value="">Tous les Monteurs</option>
         <option v-for="emp in monteurEquipe" :key="emp.id" :value="emp.id">{{ emp.nom }} {{ emp.prenom }}</option>
       </select>
-      <select v-model="filters.statutTacheId" class="form-input" style="width:auto; min-width:130px;">
+      <select v-model="filters.customStatus" class="form-input" style="width:auto; min-width:130px;">
         <option value="">Tous Statuts</option>
-        <option v-for="st in statuts" :key="st.id" :value="st.id">{{ st.nom }}</option>
+        <option value="en_cours">En cours</option>
+        <option value="termine">Terminé</option>
+        <option value="en_retard">En retard</option>
       </select>
     </div>
 
@@ -42,7 +44,14 @@
           <tr v-for="task in filteredTasks" :key="task.id">
             <td style="font-weight:600;">{{ task.titre }}</td>
             <td style="font-weight:500;">{{ task.employe?.prenom }} {{ task.employe?.nom[0] }}.</td>
-            <td style="color:var(--text-secondary);">{{ new Date(task.date_limite).toLocaleDateString() }}</td>
+            <td style="color:var(--text-secondary);">
+              <strong :style="{color: new Date(task.date_limite) < new Date() && task.statutTache?.nom !== 'Terminé' && task.statutTache?.libelle !== 'Terminé' && task.statutTache?.nom !== 'Publié' && task.statutTache?.libelle !== 'Publié' ? 'var(--danger-color)' : 'inherit'}">
+                {{ new Date(task.date_limite).toLocaleDateString() }}
+                <span v-if="new Date(task.date_limite) < new Date() && task.statutTache?.nom !== 'Terminé' && task.statutTache?.libelle !== 'Terminé' && task.statutTache?.nom !== 'Publié' && task.statutTache?.libelle !== 'Publié'" style="font-size:0.75rem; display:block; margin-top:2px; color:var(--danger-color);">
+                  Retard: {{ calculateLateness(task.date_limite) }}
+                </span>
+              </strong>
+            </td>
             <td><span class="badge" :style="{background: task.statutTache?.couleur + '20', color: task.statutTache?.couleur, border: '1px solid ' + task.statutTache?.couleur}">{{ task.statutTache?.nom }}</span></td>
             <td style="text-align:right;">
               <div class="actions-cell">
@@ -149,7 +158,16 @@ const onConfirmExecute = async () => {
   confirmModal.value.isOpen = false
 }
 
-const filters = ref({ search:'', employeId:'', statutTacheId:'' })
+const filters = ref({ search:'', employeId:'', customStatus:'' })
+
+const calculateLateness = (dateLimite) => {
+  const diffMs = new Date() - new Date(dateLimite);
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays > 0) return `${diffDays} jour${diffDays > 1 ? 's' : ''}`;
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  if (diffHours > 0) return `${diffHours} heure${diffHours > 1 ? 's' : ''}`;
+  return "Moins d'une heure";
+}
 
 const defaultForm = () => {
   const defaultStatut = statuts.value?.find(s => s.niveau_progression === 0)?.id || ''
@@ -165,7 +183,18 @@ const filteredTasks = computed(() => {
   return taches.value.filter(t => {
     if (filters.value.search && !t.titre.toLowerCase().includes(filters.value.search.toLowerCase()) && !t.description?.toLowerCase().includes(filters.value.search.toLowerCase())) return false
     if (filters.value.employeId && t.employeId !== filters.value.employeId) return false
-    if (filters.value.statutTacheId && t.statutTacheId !== filters.value.statutTacheId) return false
+    
+    const isTermine = t.statutTache?.nom === 'Terminé' || t.statutTache?.libelle === 'Terminé' || t.statutTache?.nom === 'Publié' || t.statutTache?.libelle === 'Publié';
+    const isRetard = !isTermine && new Date(t.date_limite) < new Date();
+    
+    if (filters.value.customStatus === 'en_cours') {
+      if (isTermine || isRetard) return false;
+    } else if (filters.value.customStatus === 'termine') {
+      if (!isTermine) return false;
+    } else if (filters.value.customStatus === 'en_retard') {
+      if (!isRetard) return false;
+    }
+    
     return true
   })
 })

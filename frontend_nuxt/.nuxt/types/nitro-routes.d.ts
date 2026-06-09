@@ -64,6 +64,9 @@ declare module "nitropack/types" {
     '/api/roles': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/roles/index.get').default>>>>
     }
+    '/api/seed-prod': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/seed-prod.get').default>>>>
+    }
     '/api/taches/:id': {
       'delete': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/taches/[id].delete').default>>>>
     }

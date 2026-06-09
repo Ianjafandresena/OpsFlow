@@ -2170,7 +2170,22 @@ _4s7PyUB1uoJfuNiXLt8PH7woW3GoRCrmcz6vXBA9V_0,
 _wH6JrtIxmaSoA8lCPWFnE9z4lQeXW6H5z3l5aymEQw
 ];
 
-const assets = {};
+const assets = {
+  "/index.mjs": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"2b706-Kc9BJoiSSCh4oBJHfF4qGcaBQok\"",
+    "mtime": "2026-06-09T01:46:42.181Z",
+    "size": 177926,
+    "path": "index.mjs"
+  },
+  "/index.mjs.map": {
+    "type": "application/json",
+    "etag": "\"a39f8-Jej3pVoY7gYlBs4Z+xKpUdLCOSI\"",
+    "mtime": "2026-06-09T01:46:42.181Z",
+    "size": 670200,
+    "path": "index.mjs.map"
+  }
+};
 
 function readAsset (id) {
   const serverDir = dirname$1(fileURLToPath(globalThis._importMeta_.url));
@@ -2809,6 +2824,7 @@ const _lazy_i2M0tb = () => Promise.resolve().then(function () { return analyse_p
 const _lazy_8mkLnD = () => Promise.resolve().then(function () { return sync_get$1; });
 const _lazy_DvTI_e = () => Promise.resolve().then(function () { return index_get$b; });
 const _lazy_YMZ2xV = () => Promise.resolve().then(function () { return index_get$9; });
+const _lazy_Hov6aK = () => Promise.resolve().then(function () { return seedProd_get$1; });
 const _lazy_xBSNTg = () => Promise.resolve().then(function () { return _id__delete$5; });
 const _lazy_Ubc0OA = () => Promise.resolve().then(function () { return decider_post$1; });
 const _lazy_VTnx2h = () => Promise.resolve().then(function () { return index_get$7; });
@@ -2850,6 +2866,7 @@ const handlers = [
   { route: '/api/meta/sync', handler: _lazy_8mkLnD, lazy: true, middleware: false, method: "get" },
   { route: '/api/postes', handler: _lazy_DvTI_e, lazy: true, middleware: false, method: "get" },
   { route: '/api/roles', handler: _lazy_YMZ2xV, lazy: true, middleware: false, method: "get" },
+  { route: '/api/seed-prod', handler: _lazy_Hov6aK, lazy: true, middleware: false, method: "get" },
   { route: '/api/taches/:id', handler: _lazy_xBSNTg, lazy: true, middleware: false, method: "delete" },
   { route: '/api/taches/demandes/:id/decider', handler: _lazy_Ubc0OA, lazy: true, middleware: false, method: "post" },
   { route: '/api/taches/demandes', handler: _lazy_VTnx2h, lazy: true, middleware: false, method: "get" },
@@ -3217,10 +3234,10 @@ const styles$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
   default: styles
 }, Symbol.toStringTag, { value: 'Module' }));
 
-const prisma = new PrismaClient();
+const prisma$1 = new PrismaClient();
 
 const index_get$i = defineEventHandler(async (event) => {
-  return await prisma.employe.findMany({
+  return await prisma$1.employe.findMany({
     include: {
       poste: true,
       editionsGerees: {
@@ -3244,7 +3261,7 @@ const index_post$e = defineEventHandler(async (event) => {
   if (!body.employeId || !body.editionId) {
     throw createError({ statusCode: 400, statusMessage: "Employe et Edition requis" });
   }
-  return await prisma.employe.update({
+  return await prisma$1.employe.update({
     where: { id: body.employeId },
     data: {
       editionsGerees: {
@@ -3264,7 +3281,7 @@ const remove_post = defineEventHandler(async (event) => {
   if (!body.employeId || !body.editionId) {
     throw createError({ statusCode: 400, statusMessage: "Employe et Edition requis" });
   }
-  return await prisma.employe.update({
+  return await prisma$1.employe.update({
     where: { id: body.employeId },
     data: {
       editionsGerees: {
@@ -3284,7 +3301,7 @@ const login_post = defineEventHandler(async (event) => {
   if (!body.email || !body.mot_de_passe) {
     throw createError({ statusCode: 400, statusMessage: "Email et mot de passe requis." });
   }
-  const employe = await prisma.employe.findUnique({
+  const employe = await prisma$1.employe.findUnique({
     where: { email: body.email },
     include: { role: true, poste: { include: { departement: true } } }
   });
@@ -3342,22 +3359,22 @@ const manage_post = defineEventHandler(async (event) => {
   if (!payload || payload.role !== "ADMIN") throw createError({ statusCode: 403, statusMessage: "R\xE9serv\xE9 aux admins" });
   const body = await readBody(event);
   if (!body.employeId || !body.action) throw createError({ statusCode: 400, statusMessage: "Param\xE8tres manquants" });
-  const employe = await prisma.employe.findUnique({ where: { id: body.employeId } });
+  const employe = await prisma$1.employe.findUnique({ where: { id: body.employeId } });
   if (!employe) throw createError({ statusCode: 404, statusMessage: "Employ\xE9 introuvable" });
   if (body.action === "validate") {
     const updateData = { is_active: true };
     if ((_a = body.data) == null ? void 0 : _a.posteId) updateData.posteId = body.data.posteId;
     if ((_b = body.data) == null ? void 0 : _b.roleId) updateData.roleId = body.data.roleId;
-    await prisma.employe.update({ where: { id: body.employeId }, data: updateData });
+    await prisma$1.employe.update({ where: { id: body.employeId }, data: updateData });
     return { success: true, message: `Compte de ${employe.nom} ${employe.prenom} activ\xE9.` };
   }
   if (body.action === "reject") {
-    await prisma.employe.delete({ where: { id: body.employeId } });
+    await prisma$1.employe.delete({ where: { id: body.employeId } });
     return { success: true, message: "Compte supprim\xE9." };
   }
   if (body.action === "set_password") {
     if (!((_c = body.data) == null ? void 0 : _c.password)) throw createError({ statusCode: 400, statusMessage: "Mot de passe manquant" });
-    await prisma.employe.update({
+    await prisma$1.employe.update({
       where: { id: body.employeId },
       data: { mot_de_passe: hashPassword(body.data.password) }
     });
@@ -3365,7 +3382,7 @@ const manage_post = defineEventHandler(async (event) => {
   }
   if (body.action === "set_role") {
     if (!((_d = body.data) == null ? void 0 : _d.roleId)) throw createError({ statusCode: 400, statusMessage: "R\xF4le manquant" });
-    await prisma.employe.update({
+    await prisma$1.employe.update({
       where: { id: body.employeId },
       data: { roleId: body.data.roleId }
     });
@@ -3373,7 +3390,7 @@ const manage_post = defineEventHandler(async (event) => {
   }
   if (body.action === "toggle_active") {
     const newStatus = !employe.is_active;
-    await prisma.employe.update({
+    await prisma$1.employe.update({
       where: { id: body.employeId },
       data: { is_active: newStatus }
     });
@@ -3392,13 +3409,13 @@ const me_get = defineEventHandler(async (event) => {
   if (!token) throw createError({ statusCode: 401, statusMessage: "Non authentifi\xE9" });
   const payload = verifyToken(token);
   if (!payload || !payload.id) throw createError({ statusCode: 401, statusMessage: "Session expir\xE9e ou invalide" });
-  const employe = await prisma.employe.findUnique({
+  const employe = await prisma$1.employe.findUnique({
     where: { id: payload.id },
     include: { role: true, poste: { include: { departement: true } } }
   });
   if (!employe || !employe.is_active) throw createError({ statusCode: 401, statusMessage: "Compte inactif ou introuvable" });
   if (payload.simulatedPosteId) {
-    const simulatedPoste = await prisma.poste.findUnique({
+    const simulatedPoste = await prisma$1.poste.findUnique({
       where: { id: payload.simulatedPosteId },
       include: { departement: true }
     });
@@ -3421,7 +3438,7 @@ const pending_get = defineEventHandler(async (event) => {
   if (!token) throw createError({ statusCode: 401, statusMessage: "Non authentifi\xE9" });
   const payload = verifyToken(token);
   if (!payload || payload.role !== "ADMIN") throw createError({ statusCode: 403, statusMessage: "R\xE9serv\xE9 aux admins" });
-  return await prisma.employe.findMany({
+  return await prisma$1.employe.findMany({
     where: { is_active: false },
     include: { role: true, poste: { include: { departement: true } } },
     orderBy: { nom: "asc" }
@@ -3452,22 +3469,22 @@ const register_post = defineEventHandler(async (event) => {
   if (!nom || !prenom) {
     throw createError({ statusCode: 400, statusMessage: "Le nom et le pr\xE9nom ne peuvent pas \xEAtre vides." });
   }
-  const existing = await prisma.employe.findUnique({ where: { email } });
+  const existing = await prisma$1.employe.findUnique({ where: { email } });
   if (existing) {
     throw createError({ statusCode: 400, statusMessage: "Cet email est d\xE9j\xE0 utilis\xE9." });
   }
-  let role = await prisma.role.findUnique({ where: { niveau_acces: "CM" } });
+  let role = await prisma$1.role.findUnique({ where: { niveau_acces: "CM" } });
   if (!role) {
-    role = await prisma.role.findFirst();
+    role = await prisma$1.role.findFirst();
   }
   if (!role) {
     throw createError({ statusCode: 500, statusMessage: "Aucun r\xF4le configur\xE9. Contactez un administrateur." });
   }
-  let poste = await prisma.poste.findFirst();
+  let poste = await prisma$1.poste.findFirst();
   if (!poste) {
     throw createError({ statusCode: 500, statusMessage: "Aucun poste configur\xE9. Contactez un administrateur." });
   }
-  await prisma.employe.create({
+  await prisma$1.employe.create({
     data: {
       nom,
       prenom,
@@ -3496,7 +3513,7 @@ const simulate_post = defineEventHandler(async (event) => {
   if (!payload || !payload.id || payload.role !== "ADMIN") {
     throw createError({ statusCode: 403, statusMessage: "Seul un administrateur peut simuler un r\xF4le" });
   }
-  const poste = await prisma.poste.findUnique({ where: { id: posteId } });
+  const poste = await prisma$1.poste.findUnique({ where: { id: posteId } });
   if (!poste) throw createError({ statusCode: 404, statusMessage: "Poste introuvable" });
   const newToken = signToken({
     id: payload.id,
@@ -3523,7 +3540,7 @@ const _id__delete$a = defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
   if (!id) throw createError({ statusCode: 400, statusMessage: "ID manquant" });
   try {
-    await prisma.editionPage.delete({
+    await prisma$1.editionPage.delete({
       where: { id }
     });
     return { success: true };
@@ -3538,7 +3555,7 @@ const _id__delete$b = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePrope
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const index_get$g = defineEventHandler(async (event) => {
-  return await prisma.editionPage.findMany({
+  return await prisma$1.editionPage.findMany({
     include: {
       licence: true,
       ville: true
@@ -3558,7 +3575,7 @@ const index_post$c = defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: "Licence et Ville requises" });
   }
   if (body.id) {
-    return await prisma.editionPage.update({
+    return await prisma$1.editionPage.update({
       where: { id: body.id },
       data: {
         licenceId: body.licenceId,
@@ -3570,7 +3587,7 @@ const index_post$c = defineEventHandler(async (event) => {
       include: { licence: true, ville: true }
     });
   } else {
-    return await prisma.editionPage.create({
+    return await prisma$1.editionPage.create({
       data: {
         licenceId: body.licenceId,
         villeId: body.villeId,
@@ -3592,7 +3609,7 @@ const _id__delete$8 = defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
   if (!id) throw createError({ statusCode: 400, statusMessage: "ID manquant" });
   try {
-    await prisma.employe.delete({
+    await prisma$1.employe.delete({
       where: { id }
     });
     return { success: true };
@@ -3607,7 +3624,7 @@ const _id__delete$9 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePrope
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const index_get$e = defineEventHandler(async (event) => {
-  const employes = await prisma.employe.findMany({
+  const employes = await prisma$1.employe.findMany({
     include: {
       poste: { include: { departement: true } },
       role: true,
@@ -3637,7 +3654,7 @@ const index_post$a = defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: "Champs obligatoires manquants" });
   }
   if (body.id) {
-    return await prisma.employe.update({
+    return await prisma$1.employe.update({
       where: { id: body.id },
       data: {
         nom: body.nom,
@@ -3649,7 +3666,7 @@ const index_post$a = defineEventHandler(async (event) => {
       include: { poste: { include: { departement: true } }, role: true }
     });
   } else {
-    return await prisma.employe.create({
+    return await prisma$1.employe.create({
       data: {
         nom: body.nom,
         prenom: body.prenom,
@@ -3671,7 +3688,7 @@ const _id__delete$6 = defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
   if (!id) throw createError({ statusCode: 400, statusMessage: "ID manquant" });
   try {
-    await prisma.licence.delete({
+    await prisma$1.licence.delete({
       where: { id }
     });
     return { success: true };
@@ -3686,7 +3703,7 @@ const _id__delete$7 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePrope
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const index_get$c = defineEventHandler(async (event) => {
-  return await prisma.licence.findMany({
+  return await prisma$1.licence.findMany({
     orderBy: { nom_complet: "asc" }
   });
 });
@@ -3701,7 +3718,7 @@ const index_post$8 = defineEventHandler(async (event) => {
   if (!body.nom_complet || !body.sigle) {
     throw createError({ statusCode: 400, statusMessage: "Nom et sigle requis" });
   }
-  return await prisma.licence.create({
+  return await prisma$1.licence.create({
     data: {
       nom_complet: body.nom_complet,
       sigle: body.sigle
@@ -4443,7 +4460,7 @@ const sync_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const index_get$a = defineEventHandler(async (event) => {
-  return await prisma.poste.findMany({
+  return await prisma$1.poste.findMany({
     include: { departement: true },
     orderBy: { titre_poste: "asc" }
   });
@@ -4455,7 +4472,7 @@ const index_get$b = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePropert
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const index_get$8 = defineEventHandler(async (event) => {
-  return await prisma.role.findMany({
+  return await prisma$1.role.findMany({
     orderBy: { niveau_acces: "asc" }
   });
 });
@@ -4465,10 +4482,64 @@ const index_get$9 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePropert
   default: index_get$8
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const prisma = new PrismaClient();
+const seedProd_get = defineEventHandler(async (event) => {
+  try {
+    const roles = await Promise.all([
+      prisma.role.upsert({ where: { niveau_acces: "ADMIN" }, update: {}, create: { niveau_acces: "ADMIN" } }),
+      prisma.role.upsert({ where: { niveau_acces: "CM" }, update: {}, create: { niveau_acces: "CM" } }),
+      prisma.role.upsert({ where: { niveau_acces: "DESIGNER" }, update: {}, create: { niveau_acces: "DESIGNER" } }),
+      prisma.role.upsert({ where: { niveau_acces: "MONTEUR" }, update: {}, create: { niveau_acces: "MONTEUR" } }),
+      prisma.role.upsert({ where: { niveau_acces: "DEV" }, update: {}, create: { niveau_acces: "DEV" } })
+    ]);
+    const depComm = await prisma.departement.upsert({ where: { nom_departement: "Communication" }, update: {}, create: { nom_departement: "Communication" } });
+    const depTech = await prisma.departement.upsert({ where: { nom_departement: "Technique" }, update: {}, create: { nom_departement: "Technique" } });
+    await prisma.poste.upsert({ where: { titre_poste: "Administrateur" }, update: { departementId: depComm.id }, create: { titre_poste: "Administrateur", departementId: depComm.id } });
+    await prisma.poste.upsert({ where: { titre_poste: "Community Manager" }, update: { departementId: depComm.id }, create: { titre_poste: "Community Manager", departementId: depComm.id } });
+    await prisma.poste.upsert({ where: { titre_poste: "Graphiste / Designer" }, update: { departementId: depComm.id }, create: { titre_poste: "Graphiste / Designer", departementId: depComm.id } });
+    await prisma.poste.upsert({ where: { titre_poste: "Monteur Vid\xE9o" }, update: { departementId: depComm.id }, create: { titre_poste: "Monteur Vid\xE9o", departementId: depComm.id } });
+    await prisma.poste.upsert({ where: { titre_poste: "D\xE9veloppeur Web" }, update: { departementId: depTech.id }, create: { titre_poste: "D\xE9veloppeur Web", departementId: depTech.id } });
+    await Promise.all([
+      prisma.statutTache.upsert({ where: { libelle: "\xC0 faire" }, update: {}, create: { libelle: "\xC0 faire", couleur: "#ef4444" } }),
+      prisma.statutTache.upsert({ where: { libelle: "En cours" }, update: {}, create: { libelle: "En cours", couleur: "#f59e0b" } }),
+      prisma.statutTache.upsert({ where: { libelle: "En attente" }, update: {}, create: { libelle: "En attente", couleur: "#3b82f6" } }),
+      prisma.statutTache.upsert({ where: { libelle: "Termin\xE9" }, update: {}, create: { libelle: "Termin\xE9", couleur: "#22c55e" } }),
+      prisma.statutTache.upsert({ where: { libelle: "Publi\xE9" }, update: {}, create: { libelle: "Publi\xE9", couleur: "#10b981" } })
+    ]);
+    const themes = ["Annonce", "Pass -16 ans", "Pass Week-end", "Roulette", "Quizz", "Invit\xE9 VIP"];
+    for (const t of themes) {
+      await prisma.theme.upsert({ where: { nom_theme: t }, update: {}, create: { nom_theme: t } });
+    }
+    const jof = await prisma.licence.upsert({ where: { sigle: "JOF" }, update: {}, create: { nom_complet: "Japan Otaku Festival", sigle: "JOF" } });
+    const jmw = await prisma.licence.upsert({ where: { sigle: "JMW" }, update: {}, create: { nom_complet: "Japan Manga Wave", sigle: "JMW" } });
+    const vEvreux = await prisma.ville.upsert({ where: { nom_ville: "\xC9vreux" }, update: {}, create: { nom_ville: "\xC9vreux" } });
+    const vMetz = await prisma.ville.upsert({ where: { nom_ville: "Metz" }, update: {}, create: { nom_ville: "Metz" } });
+    await prisma.editionPage.upsert({
+      where: { licenceId_villeId: { licenceId: jof.id, villeId: vEvreux.id } },
+      update: {},
+      create: { licenceId: jof.id, villeId: vEvreux.id, date_debut: /* @__PURE__ */ new Date("2026-05-23"), date_fin: /* @__PURE__ */ new Date("2026-05-24") }
+    });
+    await prisma.editionPage.upsert({
+      where: { licenceId_villeId: { licenceId: jmw.id, villeId: vMetz.id } },
+      update: {},
+      create: { licenceId: jmw.id, villeId: vMetz.id, date_debut: /* @__PURE__ */ new Date("2026-09-18"), date_fin: /* @__PURE__ */ new Date("2026-09-19") }
+    });
+    return { message: "Database seeded successfully on production!" };
+  } catch (error) {
+    console.error(error);
+    return { error: "Error seeding DB" };
+  }
+});
+
+const seedProd_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: seedProd_get
+}, Symbol.toStringTag, { value: 'Module' }));
+
 const _id__delete$4 = defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
   if (!id) throw createError({ statusCode: 400, statusMessage: "ID manquant" });
-  await prisma.tache.delete({
+  await prisma$1.tache.delete({
     where: { id }
   });
   return { success: true };
@@ -4489,7 +4560,7 @@ const decider_post = defineEventHandler(async (event) => {
   if (body.decision !== "APPROVE" && body.decision !== "REJECT") {
     throw createError({ statusCode: 400, statusMessage: "decision doit \xEAtre APPROVE ou REJECT" });
   }
-  const demande = await prisma.demandeTache.findUnique({
+  const demande = await prisma$1.demandeTache.findUnique({
     where: { id }
   });
   if (!demande) {
@@ -4500,7 +4571,7 @@ const decider_post = defineEventHandler(async (event) => {
   }
   if (body.decision === "APPROVE") {
     if (demande.typeDemande === "SUPPRESSION") {
-      await prisma.tache.delete({
+      await prisma$1.tache.delete({
         where: { id: demande.tacheId }
       });
       return { success: true, message: "T\xE2che supprim\xE9e avec succ\xE8s" };
@@ -4540,18 +4611,18 @@ const decider_post = defineEventHandler(async (event) => {
           }
         }
       }
-      await prisma.tache.update({
+      await prisma$1.tache.update({
         where: { id: demande.tacheId },
         data: updateData
       });
-      const updatedDemande = await prisma.demandeTache.update({
+      const updatedDemande = await prisma$1.demandeTache.update({
         where: { id },
         data: { statut: "ACCEPTEE" }
       });
       return { success: true, message: "Modification appliqu\xE9e avec succ\xE8s", demande: updatedDemande };
     }
   } else {
-    const updatedDemande = await prisma.demandeTache.update({
+    const updatedDemande = await prisma$1.demandeTache.update({
       where: { id },
       data: { statut: "REFUSEE" }
     });
@@ -4567,7 +4638,7 @@ const decider_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProp
 const index_get$6 = defineEventHandler(async (event) => {
   const query = getQuery$1(event);
   const statut = query.statut || "EN_ATTENTE";
-  const demandes = await prisma.demandeTache.findMany({
+  const demandes = await prisma$1.demandeTache.findMany({
     where: {
       statut
     },
@@ -4613,7 +4684,7 @@ const index_post$6 = defineEventHandler(async (event) => {
   if (body.typeDemande !== "MODIFICATION" && body.typeDemande !== "SUPPRESSION") {
     throw createError({ statusCode: 400, statusMessage: "typeDemande doit \xEAtre MODIFICATION ou SUPPRESSION" });
   }
-  const task = await prisma.tache.findUnique({
+  const task = await prisma$1.tache.findUnique({
     where: { id: body.tacheId }
   });
   if (!task) {
@@ -4623,7 +4694,7 @@ const index_post$6 = defineEventHandler(async (event) => {
   if (body.typeDemande === "MODIFICATION" && body.donneesModif) {
     stringifiedDonneesModif = JSON.stringify(body.donneesModif);
   }
-  const demande = await prisma.demandeTache.create({
+  const demande = await prisma$1.demandeTache.create({
     data: {
       tacheId: body.tacheId,
       typeDemande: body.typeDemande,
@@ -4663,7 +4734,7 @@ const index_get$4 = defineEventHandler(async (event) => {
       }
     };
   }
-  return await prisma.tache.findMany({
+  return await prisma$1.tache.findMany({
     where,
     include: {
       employe: true,
@@ -4749,14 +4820,14 @@ const index_post$4 = defineEventHandler(async (event) => {
     demandeur: body.demandeur
   };
   if (body.id) {
-    return await prisma.tache.update({
+    return await prisma$1.tache.update({
       where: { id: body.id },
       data
     });
   } else {
     console.log("--- CREATING TACHE ---");
     console.log(data);
-    return await prisma.tache.create({ data });
+    return await prisma$1.tache.create({ data });
   }
 });
 
@@ -4766,7 +4837,7 @@ const index_post$5 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProper
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const statuts_get = defineEventHandler(async (event) => {
-  const statuts = await prisma.statutTache.findMany();
+  const statuts = await prisma$1.statutTache.findMany();
   const details = {
     "\xC0 faire": { couleur: "#64748b", niveau_progression: 0 },
     "En cours": { couleur: "#3b82f6", niveau_progression: 1 },
@@ -4795,7 +4866,7 @@ const _id__delete$2 = defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
   if (!id) throw createError({ statusCode: 400, statusMessage: "ID manquant" });
   try {
-    await prisma.theme.delete({
+    await prisma$1.theme.delete({
       where: { id }
     });
     return { success: true };
@@ -4810,7 +4881,7 @@ const _id__delete$3 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePrope
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const index_get$2 = defineEventHandler(async (event) => {
-  return await prisma.theme.findMany({
+  return await prisma$1.theme.findMany({
     orderBy: { nom_theme: "asc" }
   });
 });
@@ -4826,12 +4897,12 @@ const index_post$2 = defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: "Nom du th\xE8me requis" });
   }
   if (body.id) {
-    return await prisma.theme.update({
+    return await prisma$1.theme.update({
       where: { id: body.id },
       data: { nom_theme: body.nom_theme }
     });
   } else {
-    return await prisma.theme.create({
+    return await prisma$1.theme.create({
       data: { nom_theme: body.nom_theme }
     });
   }
@@ -4846,7 +4917,7 @@ const _id__delete = defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
   if (!id) throw createError({ statusCode: 400, statusMessage: "ID manquant" });
   try {
-    await prisma.ville.delete({
+    await prisma$1.ville.delete({
       where: { id }
     });
     return { success: true };
@@ -4861,7 +4932,7 @@ const _id__delete$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePrope
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const index_get = defineEventHandler(async (event) => {
-  return await prisma.ville.findMany({
+  return await prisma$1.ville.findMany({
     orderBy: { nom_ville: "asc" }
   });
 });
@@ -4876,7 +4947,7 @@ const index_post = defineEventHandler(async (event) => {
   if (!body.nom_ville) {
     throw createError({ statusCode: 400, statusMessage: "Nom de ville requis" });
   }
-  return await prisma.ville.create({
+  return await prisma$1.ville.create({
     data: {
       nom_ville: body.nom_ville
     }
