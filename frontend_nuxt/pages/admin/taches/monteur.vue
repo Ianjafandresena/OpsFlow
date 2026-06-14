@@ -45,14 +45,25 @@
             <td style="font-weight:600;">{{ task.titre }}</td>
             <td style="font-weight:500;">{{ task.employe?.prenom }} {{ task.employe?.nom[0] }}.</td>
             <td style="color:var(--text-secondary);">
-              <strong :style="{color: new Date(task.date_limite) < new Date() && task.statutTache?.nom !== 'Terminé' && task.statutTache?.libelle !== 'Terminé' && task.statutTache?.nom !== 'Publié' && task.statutTache?.libelle !== 'Publié' ? 'var(--danger-color)' : 'inherit'}">
+              <strong :style="{color: new Date(task.date_limite) < new Date() && task.statutTache?.libelle !== 'Terminé' && task.statutTache?.libelle !== 'Publié' ? 'var(--danger-color)' : 'inherit'}">
                 {{ new Date(task.date_limite).toLocaleDateString() }}
-                <span v-if="new Date(task.date_limite) < new Date() && task.statutTache?.nom !== 'Terminé' && task.statutTache?.libelle !== 'Terminé' && task.statutTache?.nom !== 'Publié' && task.statutTache?.libelle !== 'Publié'" style="font-size:0.75rem; display:block; margin-top:2px; color:var(--danger-color);">
+                <span v-if="new Date(task.date_limite) < new Date() && task.statutTache?.libelle !== 'Terminé' && task.statutTache?.libelle !== 'Publié'" style="font-size:0.75rem; display:block; margin-top:2px; color:var(--danger-color);">
                   Retard: {{ calculateLateness(task.date_limite) }}
                 </span>
               </strong>
             </td>
-            <td><span class="badge" :style="{background: task.statutTache?.couleur + '20', color: task.statutTache?.couleur, border: '1px solid ' + task.statutTache?.couleur}">{{ task.statutTache?.nom }}</span></td>
+            <td>
+              <span class="badge" 
+                    :class="{
+                      'badge-neutral': task.statutTache?.libelle === 'À faire',
+                      'badge-info': task.statutTache?.libelle === 'En cours',
+                      'badge-warning': task.statutTache?.libelle === 'En attente',
+                      'badge-success': task.statutTache?.libelle === 'Terminé' || task.statutTache?.libelle === 'Publié'
+                    }"
+                    style="padding:0.35rem 0.6rem; font-size:0.75rem; border-radius:12px; font-weight:600; border: 1px solid transparent;">
+                {{ task.statutTache?.libelle || 'Inconnu' }}
+              </span>
+            </td>
             <td style="text-align:right;">
               <div class="actions-cell">
                 <button class="btn btn-secondary btn-icon" @click="viewDetail(task)" title="Voir détails"><EyeIcon :size="14" /></button>
@@ -125,8 +136,12 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Plus as PlusIcon, Search as SearchIcon, Edit as EditIcon, Trash2 as TrashIcon, Eye as EyeIcon } from 'lucide-vue-next'
+
+onMounted(async () => {
+  await refreshTaches()
+})
 
 definePageMeta({ layout: 'admin' })
 

@@ -389,8 +389,9 @@ const handleOutsideClick = () => {
   activeDropdownId.value = null
 }
 
-onMounted(() => {
+onMounted(async () => {
   window.addEventListener('click', handleOutsideClick)
+  await refreshTaches()
 })
 
 onUnmounted(() => {
