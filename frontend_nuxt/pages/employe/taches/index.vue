@@ -333,7 +333,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus as PlusIcon, Search as SearchIcon, Edit as EditIcon, Trash2 as TrashIcon, MoreVertical as MoreVerticalIcon, Check as CheckIcon, Eye as EyeIcon } from 'lucide-vue-next'
 
@@ -354,10 +354,17 @@ const userDept = computed(() => {
 })
 
 // --- DONNÉES DYNAMIQUES DEPUIS L'API ---
-const { data: taches, refresh: refreshTaches } = await useFetch('/api/taches', { query: { employeId: loggedEmployeId.value } })
+// Use computed query so employeId is reactive and always up-to-date
+const tachesQuery = computed(() => ({ employeId: loggedEmployeId.value }))
+const { data: taches, refresh: refreshTaches } = await useFetch('/api/taches', { query: tachesQuery })
 const { data: editions } = await useFetch('/api/editions')
 const { data: statuts } = await useFetch('/api/taches/statuts')
 const { data: themes } = await useFetch('/api/themes') // Pour CM
+
+// Refresh tasks when the logged-in employeId becomes available (e.g. after hydration)
+watch(loggedEmployeId, async (newId) => {
+  if (newId) await refreshTaches()
+})
 
 const modal = ref(false)
 const editing = ref(false)
