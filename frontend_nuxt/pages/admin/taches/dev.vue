@@ -61,15 +61,17 @@
               </strong>
             </td>
             <td>
-              <span class="badge" 
-                    :class="{
-                      'badge-neutral': task.statutTache?.libelle === 'À faire',
-                      'badge-info': task.statutTache?.libelle === 'En cours',
-                      'badge-warning': task.statutTache?.libelle === 'En attente',
-                      'badge-success': task.statutTache?.libelle === 'Terminé' || task.statutTache?.libelle === 'Publié'
-                    }"
-                    style="padding:0.35rem 0.6rem; font-size:0.75rem; border-radius:12px; font-weight:600; border: 1px solid transparent;">
-                {{ task.statutTache?.libelle || 'Inconnu' }}
+              <span
+                :class="[
+                  'badge',
+                  task.statutTache?.libelle === 'À faire' ? 'badge-neutral' :
+                  task.statutTache?.libelle === 'En cours' ? 'badge-info' :
+                  task.statutTache?.libelle === 'En attente' ? 'badge-warning' :
+                  (task.statutTache?.libelle === 'Terminé' || task.statutTache?.libelle === 'Publié') ? 'badge-success' :
+                  'badge-neutral'
+                ]"
+              >
+                {{ task.statutTache?.libelle || '—' }}
               </span>
             </td>
             <td style="text-align:right;">
