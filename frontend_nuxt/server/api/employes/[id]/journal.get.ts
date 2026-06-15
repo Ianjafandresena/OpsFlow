@@ -47,34 +47,8 @@ export default defineEventHandler(async (event) => {
     orderBy: { date_limite: 'asc' }
   })
 
-  // Aussi récupérer les tâches terminées aujourd'hui (mises à jour aujourd'hui avec statut Terminé/Publié)
-  const tachesTerminees = await prisma.tache.findMany({
-    where: {
-      employeId: id,
-      statutTache: {
-        libelle: { in: ['Terminé', 'Publié'] }
-      },
-      // On prend les tâches modifiées aujourd'hui
-      updatedAt: {
-        gte: startOfDay,
-        lte: endOfDay
-      }
-    },
-    include: {
-      statutTache: true,
-      edition: {
-        include: { licence: true, ville: true }
-      }
-    },
-    orderBy: { updatedAt: 'asc' }
-  })
-
-  // Fusionner sans doublons
-  const allIds = new Set(taches.map(t => t.id))
-  const extras = tachesTerminees.filter(t => !allIds.has(t.id))
-
   return {
     date: targetDate.toISOString().split('T')[0],
-    taches: [...taches, ...extras]
+    taches: taches
   }
 })
