@@ -3,46 +3,46 @@ import { Server } from 'node:http';
 import { resolve, dirname, join } from 'node:path';
 import crypto$1 from 'node:crypto';
 import { parentPort, threadId } from 'node:worker_threads';
-import { defineEventHandler, handleCacheHeaders, splitCookiesString, createEvent, fetchWithEvent, isEvent, eventHandler, setHeaders, createError, sendRedirect, proxyRequest, getRequestHeader, setResponseHeaders, setResponseStatus, send, getRequestHeaders, setResponseHeader, appendResponseHeader, getRequestURL, getResponseHeader, removeResponseHeader, getCookie, getQuery as getQuery$1, readBody, createApp, createRouter as createRouter$1, toNodeListener, lazyEventHandler, getResponseStatus, getRouterParam, setCookie, deleteCookie, getResponseStatusText } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/h3/dist/index.mjs';
-import { escapeHtml } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/@vue/shared/dist/shared.cjs.js';
-import viteNodeEntry_mjs from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/@nuxt/vite-builder/dist/vite-node-entry.mjs';
-import { viteNodeFetch } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/@nuxt/vite-builder/dist/vite-node.mjs';
+import { defineEventHandler, handleCacheHeaders, splitCookiesString, createEvent, fetchWithEvent, isEvent, eventHandler, setHeaders, createError, sendRedirect, proxyRequest, getRequestHeader, setResponseHeaders, setResponseStatus, send, getRequestHeaders, setResponseHeader, appendResponseHeader, getRequestURL, getResponseHeader, removeResponseHeader, getCookie, getQuery as getQuery$1, readBody, createApp, createRouter as createRouter$1, toNodeListener, lazyEventHandler, getResponseStatus, getRouterParam, setCookie, deleteCookie, getResponseStatusText } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/h3/dist/index.mjs';
+import { escapeHtml } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/@vue/shared/dist/shared.cjs.js';
+import viteNodeEntry_mjs from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/@nuxt/vite-builder/dist/vite-node-entry.mjs';
+import { viteNodeFetch } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/@nuxt/vite-builder/dist/vite-node.mjs';
 import https from 'node:https';
-import { PrismaClient } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/@prisma/client/default.js';
-import { createRenderer, getRequestDependencies, getPreloadLinks, getPrefetchLinks } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/vue-bundle-renderer/dist/runtime.mjs';
-import { parseURL, withoutBase, joinURL, getQuery, withQuery, withTrailingSlash, decodePath, withLeadingSlash, withoutTrailingSlash, encodePath, joinRelativeURL } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/ufo/dist/index.mjs';
-import { renderToString } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/vue/server-renderer/index.mjs';
-import { klona } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/klona/dist/index.mjs';
-import defu, { defuFn } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/defu/dist/defu.mjs';
-import destr, { destr as destr$1 } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/destr/dist/index.mjs';
-import { snakeCase } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/scule/dist/index.mjs';
-import { createHead as createHead$1, propsToString, renderSSRHead } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/unhead/dist/server.mjs';
-import { stringify, uneval } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/devalue/index.js';
-import { isVNode, isRef, toValue } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/vue/index.mjs';
-import { DeprecationsPlugin, PromisesPlugin, TemplateParamsPlugin, AliasSortingPlugin } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/unhead/dist/plugins.mjs';
-import { createHooks } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/hookable/dist/index.mjs';
-import { createFetch, Headers as Headers$1 } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/ofetch/dist/node.mjs';
-import { fetchNodeRequestHandler, callNodeRequestHandler } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/node-mock-http/dist/index.mjs';
-import { createStorage, prefixStorage } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/unstorage/dist/index.mjs';
-import unstorage_47drivers_47fs from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/unstorage/drivers/fs.mjs';
-import file_58_47_47_47D_58_47planning_47systeme_centralise_47frontend_nuxt_47node_modules_47_64nuxt_47nitro_45server_47dist_47runtime_47utils_47cache_45driver_46js from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/@nuxt/nitro-server/dist/runtime/utils/cache-driver.js';
-import { digest, hash as hash$1 } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/ohash/dist/index.mjs';
-import { toRouteMatcher, createRouter } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/radix3/dist/index.mjs';
+import { PrismaClient } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/@prisma/client/default.js';
+import { createRenderer, getRequestDependencies, getPreloadLinks, getPrefetchLinks } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/vue-bundle-renderer/dist/runtime.mjs';
+import { parseURL, withoutBase, joinURL, getQuery, withQuery, withTrailingSlash, decodePath, withLeadingSlash, withoutTrailingSlash, encodePath, joinRelativeURL } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/ufo/dist/index.mjs';
+import { renderToString } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/vue/server-renderer/index.mjs';
+import { klona } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/klona/dist/index.mjs';
+import defu, { defuFn } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/defu/dist/defu.mjs';
+import destr, { destr as destr$1 } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/destr/dist/index.mjs';
+import { snakeCase } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/scule/dist/index.mjs';
+import { createHead as createHead$1, propsToString, renderSSRHead } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/unhead/dist/server.mjs';
+import { stringify, uneval } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/devalue/index.js';
+import { isVNode, isRef, toValue } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/vue/index.mjs';
+import { DeprecationsPlugin, PromisesPlugin, TemplateParamsPlugin, AliasSortingPlugin } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/unhead/dist/plugins.mjs';
+import { createHooks } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/hookable/dist/index.mjs';
+import { createFetch, Headers as Headers$1 } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/ofetch/dist/node.mjs';
+import { fetchNodeRequestHandler, callNodeRequestHandler } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/node-mock-http/dist/index.mjs';
+import { createStorage, prefixStorage } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/unstorage/dist/index.mjs';
+import unstorage_47drivers_47fs from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/unstorage/drivers/fs.mjs';
+import file_58_47_47_47D_58_47opsflow_47OpsFlow_47frontend_nuxt_47node_modules_47_64nuxt_47nitro_45server_47dist_47runtime_47utils_47cache_45driver_46js from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/@nuxt/nitro-server/dist/runtime/utils/cache-driver.js';
+import { digest, hash as hash$1 } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/ohash/dist/index.mjs';
+import { toRouteMatcher, createRouter } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/radix3/dist/index.mjs';
 import { readFile } from 'node:fs/promises';
-import consola, { consola as consola$1 } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/consola/dist/index.mjs';
-import { ErrorParser } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/youch-core/build/index.js';
-import { Youch } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/youch/build/index.js';
-import { SourceMapConsumer } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/source-map/source-map.js';
+import consola, { consola as consola$1 } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/consola/dist/index.mjs';
+import { ErrorParser } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/youch-core/build/index.js';
+import { Youch } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/youch/build/index.js';
+import { SourceMapConsumer } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/source-map/source-map.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { getContext } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/unctx/dist/index.mjs';
-import { captureRawStackTrace, parseRawStackTrace } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/errx/dist/index.js';
-import _wH6JrtIxmaSoA8lCPWFnE9z4lQeXW6H5z3l5aymEQw from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/@nuxt/vite-builder/dist/fix-stacktrace.mjs';
+import { getContext } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/unctx/dist/index.mjs';
+import { captureRawStackTrace, parseRawStackTrace } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/errx/dist/index.js';
+import _wH6JrtIxmaSoA8lCPWFnE9z4lQeXW6H5z3l5aymEQw from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/@nuxt/vite-builder/dist/fix-stacktrace.mjs';
 import { promises } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname as dirname$1, resolve as resolve$1 } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/pathe/dist/index.mjs';
-import { walkResolver } from 'file://D:/planning/systeme_centralise/frontend_nuxt/node_modules/unhead/dist/utils.mjs';
+import { dirname as dirname$1, resolve as resolve$1 } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/pathe/dist/index.mjs';
+import { walkResolver } from 'file://D:/opsflow/OpsFlow/frontend_nuxt/node_modules/unhead/dist/utils.mjs';
 
-const serverAssets = [{"baseName":"server","dir":"D:/planning/systeme_centralise/frontend_nuxt/server/assets"}];
+const serverAssets = [{"baseName":"server","dir":"D:/opsflow/OpsFlow/frontend_nuxt/server/assets"}];
 
 const assets$1 = createStorage();
 
@@ -54,12 +54,12 @@ const storage = createStorage({});
 
 storage.mount('/assets', assets$1);
 
-storage.mount('root', unstorage_47drivers_47fs({"driver":"fs","readOnly":true,"base":"D:/planning/systeme_centralise/frontend_nuxt","watchOptions":{"ignored":[null]}}));
-storage.mount('src', unstorage_47drivers_47fs({"driver":"fs","readOnly":true,"base":"D:/planning/systeme_centralise/frontend_nuxt/server","watchOptions":{"ignored":[null]}}));
-storage.mount('cache:nuxt:payload', file_58_47_47_47D_58_47planning_47systeme_centralise_47frontend_nuxt_47node_modules_47_64nuxt_47nitro_45server_47dist_47runtime_47utils_47cache_45driver_46js({"driver":"file:///D:/planning/systeme_centralise/frontend_nuxt/node_modules/@nuxt/nitro-server/dist/runtime/utils/cache-driver.js","base":"D:/planning/systeme_centralise/frontend_nuxt/.nuxt/cache/nuxt/payload"}));
-storage.mount('build', unstorage_47drivers_47fs({"driver":"fs","readOnly":false,"base":"D:/planning/systeme_centralise/frontend_nuxt/.nuxt"}));
-storage.mount('cache', unstorage_47drivers_47fs({"driver":"fs","readOnly":false,"base":"D:/planning/systeme_centralise/frontend_nuxt/.nuxt/cache"}));
-storage.mount('data', unstorage_47drivers_47fs({"driver":"fs","base":"D:/planning/systeme_centralise/frontend_nuxt/.data/kv"}));
+storage.mount('root', unstorage_47drivers_47fs({"driver":"fs","readOnly":true,"base":"D:/opsflow/OpsFlow/frontend_nuxt","watchOptions":{"ignored":[null]}}));
+storage.mount('src', unstorage_47drivers_47fs({"driver":"fs","readOnly":true,"base":"D:/opsflow/OpsFlow/frontend_nuxt/server","watchOptions":{"ignored":[null]}}));
+storage.mount('cache:nuxt:payload', file_58_47_47_47D_58_47opsflow_47OpsFlow_47frontend_nuxt_47node_modules_47_64nuxt_47nitro_45server_47dist_47runtime_47utils_47cache_45driver_46js({"driver":"file:///D:/opsflow/OpsFlow/frontend_nuxt/node_modules/@nuxt/nitro-server/dist/runtime/utils/cache-driver.js","base":"D:/opsflow/OpsFlow/frontend_nuxt/.nuxt/cache/nuxt/payload"}));
+storage.mount('build', unstorage_47drivers_47fs({"driver":"fs","readOnly":false,"base":"D:/opsflow/OpsFlow/frontend_nuxt/.nuxt"}));
+storage.mount('cache', unstorage_47drivers_47fs({"driver":"fs","readOnly":false,"base":"D:/opsflow/OpsFlow/frontend_nuxt/.nuxt/cache"}));
+storage.mount('data', unstorage_47drivers_47fs({"driver":"fs","base":"D:/opsflow/OpsFlow/frontend_nuxt/.data/kv"}));
 
 function useStorage(base = "") {
   return base ? prefixStorage(storage, base) : storage;
@@ -2057,13 +2057,13 @@ if (!window.__NUXT_DEVTOOLS_TIME_METRIC__) {
 window.__NUXT_DEVTOOLS_TIME_METRIC__.appInit = Date.now()
 `;
 
-const _TddzR9RefYOFuyfd8PnUzQ0sacf95gCczNYzBZbLsQE = (function(nitro) {
+const _GelIPO3DFnXcYZVnGgElRFfJoQyYUJAOcJRdnkjKjug = (function(nitro) {
   nitro.hooks.hook("render:html", (htmlContext) => {
     htmlContext.head.push(`<script>${script}<\/script>`);
   });
 });
 
-const rootDir = "D:/planning/systeme_centralise/frontend_nuxt";
+const rootDir = "D:/opsflow/OpsFlow/frontend_nuxt";
 
 const appHead = {"meta":[{"name":"viewport","content":"width=device-width, initial-scale=1"},{"charset":"utf-8"},{"name":"description","content":"OpsFlow — Système centralisé de gestion des opérations, planning et suivi des tâches."},{"name":"robots","content":"noindex, nofollow"}],"link":[{"rel":"icon","type":"image/svg+xml","href":"/favicon.svg"}],"style":[],"script":[],"noscript":[],"title":"OpsFlow"};
 
@@ -2089,7 +2089,7 @@ const asyncContext = getContext("nuxt-dev", {
 	asyncContext: true,
 	AsyncLocalStorage
 });
-const _4s7PyUB1uoJfuNiXLt8PH7woW3GoRCrmcz6vXBA9V_0 = (nitroApp) => {
+const _l3H4rRk0Orzk2U3mPHBFQpU6URo3GV_Yfde7rw_mX7U = (nitroApp) => {
 	const handler = nitroApp.h3App.handler;
 	nitroApp.h3App.handler = (event) => {
 		return asyncContext.callAsync({
@@ -2165,24 +2165,24 @@ function onConsoleLog(callback) {
 }
 
 const plugins = [
-  _TddzR9RefYOFuyfd8PnUzQ0sacf95gCczNYzBZbLsQE,
-_4s7PyUB1uoJfuNiXLt8PH7woW3GoRCrmcz6vXBA9V_0,
+  _GelIPO3DFnXcYZVnGgElRFfJoQyYUJAOcJRdnkjKjug,
+_l3H4rRk0Orzk2U3mPHBFQpU6URo3GV_Yfde7rw_mX7U,
 _wH6JrtIxmaSoA8lCPWFnE9z4lQeXW6H5z3l5aymEQw
 ];
 
 const assets = {
   "/index.mjs": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"2b706-Kc9BJoiSSCh4oBJHfF4qGcaBQok\"",
-    "mtime": "2026-06-09T01:46:42.181Z",
-    "size": 177926,
+    "etag": "\"2d128-tM828KVviXdQt+pEZovp7hsF6Hk\"",
+    "mtime": "2026-06-14T23:37:03.567Z",
+    "size": 184616,
     "path": "index.mjs"
   },
   "/index.mjs.map": {
     "type": "application/json",
-    "etag": "\"a39f8-Jej3pVoY7gYlBs4Z+xKpUdLCOSI\"",
-    "mtime": "2026-06-09T01:46:42.181Z",
-    "size": 670200,
+    "etag": "\"aa285-LYxfMKHHe+3BVKm1+wm/tM1vmAk\"",
+    "mtime": "2026-06-14T23:37:03.568Z",
+    "size": 696965,
     "path": "index.mjs.map"
   }
 };
@@ -2210,7 +2210,7 @@ function getAsset (id) {
 
 const METHODS = /* @__PURE__ */ new Set(["HEAD", "GET"]);
 const EncodingMap = { gzip: ".gz", br: ".br" };
-const _sdkRVd = eventHandler((event) => {
+const _xND9xQ = eventHandler((event) => {
   if (event.method && !METHODS.has(event.method)) {
     return;
   }
@@ -2329,7 +2329,7 @@ const ADMIN_ONLY_PREFIXES = [
   "/api/roles",
   "/api/meta"
 ];
-const _oNdL3v = defineEventHandler((event) => {
+const _1DLw32 = defineEventHandler((event) => {
   const url = getRequestURL(event);
   const path = url.pathname;
   const method = event.method;
@@ -2801,88 +2801,90 @@ async function getIslandContext(event) {
 	};
 }
 
-const _lazy_O1kHuQ = () => Promise.resolve().then(function () { return index_get$j; });
-const _lazy_Ra1uy8 = () => Promise.resolve().then(function () { return index_post$f; });
-const _lazy_S9awhZ = () => Promise.resolve().then(function () { return remove_post$1; });
-const _lazy_me64Hk = () => Promise.resolve().then(function () { return login_post$1; });
-const _lazy_omkGLZ = () => Promise.resolve().then(function () { return logout_post$1; });
-const _lazy_98HihI = () => Promise.resolve().then(function () { return manage_post$1; });
-const _lazy_7ShbIE = () => Promise.resolve().then(function () { return me_get$1; });
-const _lazy_eJ2UjQ = () => Promise.resolve().then(function () { return pending_get$1; });
-const _lazy_2fJaom = () => Promise.resolve().then(function () { return register_post$1; });
-const _lazy_3Ccc7C = () => Promise.resolve().then(function () { return simulate_post$1; });
-const _lazy_aJkAhD = () => Promise.resolve().then(function () { return _id__delete$b; });
-const _lazy_l4pUlh = () => Promise.resolve().then(function () { return index_get$h; });
-const _lazy_5K8R6O = () => Promise.resolve().then(function () { return index_post$d; });
-const _lazy_CuuTgV = () => Promise.resolve().then(function () { return _id__delete$9; });
-const _lazy_mSg2sG = () => Promise.resolve().then(function () { return index_get$f; });
-const _lazy_ZHWWd5 = () => Promise.resolve().then(function () { return index_post$b; });
-const _lazy_NKid78 = () => Promise.resolve().then(function () { return _id__delete$7; });
-const _lazy_bdH4Qw = () => Promise.resolve().then(function () { return index_get$d; });
-const _lazy_kJS8tx = () => Promise.resolve().then(function () { return index_post$9; });
-const _lazy_i2M0tb = () => Promise.resolve().then(function () { return analyse_post$1; });
-const _lazy_8mkLnD = () => Promise.resolve().then(function () { return sync_get$1; });
-const _lazy_DvTI_e = () => Promise.resolve().then(function () { return index_get$b; });
-const _lazy_YMZ2xV = () => Promise.resolve().then(function () { return index_get$9; });
-const _lazy_Hov6aK = () => Promise.resolve().then(function () { return seedProd_get$1; });
-const _lazy_xBSNTg = () => Promise.resolve().then(function () { return _id__delete$5; });
-const _lazy_Ubc0OA = () => Promise.resolve().then(function () { return decider_post$1; });
-const _lazy_VTnx2h = () => Promise.resolve().then(function () { return index_get$7; });
-const _lazy_MzF6VL = () => Promise.resolve().then(function () { return index_post$7; });
-const _lazy_UQqEtF = () => Promise.resolve().then(function () { return index_get$5; });
-const _lazy_8YhdQ0 = () => Promise.resolve().then(function () { return index_post$5; });
-const _lazy_5rh7Pk = () => Promise.resolve().then(function () { return statuts_get$1; });
-const _lazy_fwjMlv = () => Promise.resolve().then(function () { return _id__delete$3; });
-const _lazy_KbWLhC = () => Promise.resolve().then(function () { return index_get$3; });
-const _lazy_3bxBDw = () => Promise.resolve().then(function () { return index_post$3; });
-const _lazy_jkYR_C = () => Promise.resolve().then(function () { return _id__delete$1; });
-const _lazy_FwnrcG = () => Promise.resolve().then(function () { return index_get$1; });
-const _lazy_KJGtRJ = () => Promise.resolve().then(function () { return index_post$1; });
-const _lazy_Qp5LbB = () => Promise.resolve().then(function () { return renderer; });
+const _lazy_dgVMBa = () => Promise.resolve().then(function () { return index_get$j; });
+const _lazy_NxoP8n = () => Promise.resolve().then(function () { return index_post$f; });
+const _lazy_ksKaPY = () => Promise.resolve().then(function () { return remove_post$1; });
+const _lazy_0DMCBH = () => Promise.resolve().then(function () { return login_post$1; });
+const _lazy_yRzGM5 = () => Promise.resolve().then(function () { return logout_post$1; });
+const _lazy_9_Mung = () => Promise.resolve().then(function () { return manage_post$1; });
+const _lazy_khICqv = () => Promise.resolve().then(function () { return me_get$1; });
+const _lazy_fbnanq = () => Promise.resolve().then(function () { return pending_get$1; });
+const _lazy_Sw25Cc = () => Promise.resolve().then(function () { return register_post$1; });
+const _lazy_clCkmW = () => Promise.resolve().then(function () { return simulate_post$1; });
+const _lazy_vgwv8g = () => Promise.resolve().then(function () { return _id__delete$b; });
+const _lazy_RCtnZJ = () => Promise.resolve().then(function () { return index_get$h; });
+const _lazy_EUl14q = () => Promise.resolve().then(function () { return index_post$d; });
+const _lazy_wMOeDO = () => Promise.resolve().then(function () { return journal_get$1; });
+const _lazy_MIvsP0 = () => Promise.resolve().then(function () { return _id__delete$9; });
+const _lazy_Bbamcq = () => Promise.resolve().then(function () { return index_get$f; });
+const _lazy_pdUcZT = () => Promise.resolve().then(function () { return index_post$b; });
+const _lazy_kcwxQE = () => Promise.resolve().then(function () { return _id__delete$7; });
+const _lazy_nxYbeU = () => Promise.resolve().then(function () { return index_get$d; });
+const _lazy_qOTtcN = () => Promise.resolve().then(function () { return index_post$9; });
+const _lazy_SRADeq = () => Promise.resolve().then(function () { return analyse_post$1; });
+const _lazy_GFMhzR = () => Promise.resolve().then(function () { return sync_get$1; });
+const _lazy_qhrnVt = () => Promise.resolve().then(function () { return index_get$b; });
+const _lazy__Rr4pU = () => Promise.resolve().then(function () { return index_get$9; });
+const _lazy_XnTwRO = () => Promise.resolve().then(function () { return seedProd_get$1; });
+const _lazy_tXOF8A = () => Promise.resolve().then(function () { return _id__delete$5; });
+const _lazy_FLHS07 = () => Promise.resolve().then(function () { return decider_post$1; });
+const _lazy_REG_0o = () => Promise.resolve().then(function () { return index_get$7; });
+const _lazy_lY3EIh = () => Promise.resolve().then(function () { return index_post$7; });
+const _lazy_Wskvxz = () => Promise.resolve().then(function () { return index_get$5; });
+const _lazy__FAssh = () => Promise.resolve().then(function () { return index_post$5; });
+const _lazy_mBZqY0 = () => Promise.resolve().then(function () { return statuts_get$1; });
+const _lazy_4K8FnY = () => Promise.resolve().then(function () { return _id__delete$3; });
+const _lazy_Zt9iaI = () => Promise.resolve().then(function () { return index_get$3; });
+const _lazy_Aq5lsq = () => Promise.resolve().then(function () { return index_post$3; });
+const _lazy_hWqpZP = () => Promise.resolve().then(function () { return _id__delete$1; });
+const _lazy_WeEoPH = () => Promise.resolve().then(function () { return index_get$1; });
+const _lazy_IefStQ = () => Promise.resolve().then(function () { return index_post$1; });
+const _lazy_YEdK_5 = () => Promise.resolve().then(function () { return renderer; });
 
 const handlers = [
-  { route: '', handler: _sdkRVd, lazy: false, middleware: true, method: undefined },
-  { route: '', handler: _oNdL3v, lazy: false, middleware: true, method: undefined },
-  { route: '/api/affectations', handler: _lazy_O1kHuQ, lazy: true, middleware: false, method: "get" },
-  { route: '/api/affectations', handler: _lazy_Ra1uy8, lazy: true, middleware: false, method: "post" },
-  { route: '/api/affectations/remove', handler: _lazy_S9awhZ, lazy: true, middleware: false, method: "post" },
-  { route: '/api/auth/login', handler: _lazy_me64Hk, lazy: true, middleware: false, method: "post" },
-  { route: '/api/auth/logout', handler: _lazy_omkGLZ, lazy: true, middleware: false, method: "post" },
-  { route: '/api/auth/manage', handler: _lazy_98HihI, lazy: true, middleware: false, method: "post" },
-  { route: '/api/auth/me', handler: _lazy_7ShbIE, lazy: true, middleware: false, method: "get" },
-  { route: '/api/auth/pending', handler: _lazy_eJ2UjQ, lazy: true, middleware: false, method: "get" },
-  { route: '/api/auth/register', handler: _lazy_2fJaom, lazy: true, middleware: false, method: "post" },
-  { route: '/api/auth/simulate', handler: _lazy_3Ccc7C, lazy: true, middleware: false, method: "post" },
-  { route: '/api/editions/:id', handler: _lazy_aJkAhD, lazy: true, middleware: false, method: "delete" },
-  { route: '/api/editions', handler: _lazy_l4pUlh, lazy: true, middleware: false, method: "get" },
-  { route: '/api/editions', handler: _lazy_5K8R6O, lazy: true, middleware: false, method: "post" },
-  { route: '/api/equipe/:id', handler: _lazy_CuuTgV, lazy: true, middleware: false, method: "delete" },
-  { route: '/api/equipe', handler: _lazy_mSg2sG, lazy: true, middleware: false, method: "get" },
-  { route: '/api/equipe', handler: _lazy_ZHWWd5, lazy: true, middleware: false, method: "post" },
-  { route: '/api/licences/:id', handler: _lazy_NKid78, lazy: true, middleware: false, method: "delete" },
-  { route: '/api/licences', handler: _lazy_bdH4Qw, lazy: true, middleware: false, method: "get" },
-  { route: '/api/licences', handler: _lazy_kJS8tx, lazy: true, middleware: false, method: "post" },
-  { route: '/api/meta/analyse', handler: _lazy_i2M0tb, lazy: true, middleware: false, method: "post" },
-  { route: '/api/meta/sync', handler: _lazy_8mkLnD, lazy: true, middleware: false, method: "get" },
-  { route: '/api/postes', handler: _lazy_DvTI_e, lazy: true, middleware: false, method: "get" },
-  { route: '/api/roles', handler: _lazy_YMZ2xV, lazy: true, middleware: false, method: "get" },
-  { route: '/api/seed-prod', handler: _lazy_Hov6aK, lazy: true, middleware: false, method: "get" },
-  { route: '/api/taches/:id', handler: _lazy_xBSNTg, lazy: true, middleware: false, method: "delete" },
-  { route: '/api/taches/demandes/:id/decider', handler: _lazy_Ubc0OA, lazy: true, middleware: false, method: "post" },
-  { route: '/api/taches/demandes', handler: _lazy_VTnx2h, lazy: true, middleware: false, method: "get" },
-  { route: '/api/taches/demandes', handler: _lazy_MzF6VL, lazy: true, middleware: false, method: "post" },
-  { route: '/api/taches', handler: _lazy_UQqEtF, lazy: true, middleware: false, method: "get" },
-  { route: '/api/taches', handler: _lazy_8YhdQ0, lazy: true, middleware: false, method: "post" },
-  { route: '/api/taches/statuts', handler: _lazy_5rh7Pk, lazy: true, middleware: false, method: "get" },
-  { route: '/api/themes/:id', handler: _lazy_fwjMlv, lazy: true, middleware: false, method: "delete" },
-  { route: '/api/themes', handler: _lazy_KbWLhC, lazy: true, middleware: false, method: "get" },
-  { route: '/api/themes', handler: _lazy_3bxBDw, lazy: true, middleware: false, method: "post" },
-  { route: '/api/villes/:id', handler: _lazy_jkYR_C, lazy: true, middleware: false, method: "delete" },
-  { route: '/api/villes', handler: _lazy_FwnrcG, lazy: true, middleware: false, method: "get" },
-  { route: '/api/villes', handler: _lazy_KJGtRJ, lazy: true, middleware: false, method: "post" },
-  { route: '/__nuxt_error', handler: _lazy_Qp5LbB, lazy: true, middleware: false, method: undefined },
+  { route: '', handler: _xND9xQ, lazy: false, middleware: true, method: undefined },
+  { route: '', handler: _1DLw32, lazy: false, middleware: true, method: undefined },
+  { route: '/api/affectations', handler: _lazy_dgVMBa, lazy: true, middleware: false, method: "get" },
+  { route: '/api/affectations', handler: _lazy_NxoP8n, lazy: true, middleware: false, method: "post" },
+  { route: '/api/affectations/remove', handler: _lazy_ksKaPY, lazy: true, middleware: false, method: "post" },
+  { route: '/api/auth/login', handler: _lazy_0DMCBH, lazy: true, middleware: false, method: "post" },
+  { route: '/api/auth/logout', handler: _lazy_yRzGM5, lazy: true, middleware: false, method: "post" },
+  { route: '/api/auth/manage', handler: _lazy_9_Mung, lazy: true, middleware: false, method: "post" },
+  { route: '/api/auth/me', handler: _lazy_khICqv, lazy: true, middleware: false, method: "get" },
+  { route: '/api/auth/pending', handler: _lazy_fbnanq, lazy: true, middleware: false, method: "get" },
+  { route: '/api/auth/register', handler: _lazy_Sw25Cc, lazy: true, middleware: false, method: "post" },
+  { route: '/api/auth/simulate', handler: _lazy_clCkmW, lazy: true, middleware: false, method: "post" },
+  { route: '/api/editions/:id', handler: _lazy_vgwv8g, lazy: true, middleware: false, method: "delete" },
+  { route: '/api/editions', handler: _lazy_RCtnZJ, lazy: true, middleware: false, method: "get" },
+  { route: '/api/editions', handler: _lazy_EUl14q, lazy: true, middleware: false, method: "post" },
+  { route: '/api/employes/:id/journal', handler: _lazy_wMOeDO, lazy: true, middleware: false, method: "get" },
+  { route: '/api/equipe/:id', handler: _lazy_MIvsP0, lazy: true, middleware: false, method: "delete" },
+  { route: '/api/equipe', handler: _lazy_Bbamcq, lazy: true, middleware: false, method: "get" },
+  { route: '/api/equipe', handler: _lazy_pdUcZT, lazy: true, middleware: false, method: "post" },
+  { route: '/api/licences/:id', handler: _lazy_kcwxQE, lazy: true, middleware: false, method: "delete" },
+  { route: '/api/licences', handler: _lazy_nxYbeU, lazy: true, middleware: false, method: "get" },
+  { route: '/api/licences', handler: _lazy_qOTtcN, lazy: true, middleware: false, method: "post" },
+  { route: '/api/meta/analyse', handler: _lazy_SRADeq, lazy: true, middleware: false, method: "post" },
+  { route: '/api/meta/sync', handler: _lazy_GFMhzR, lazy: true, middleware: false, method: "get" },
+  { route: '/api/postes', handler: _lazy_qhrnVt, lazy: true, middleware: false, method: "get" },
+  { route: '/api/roles', handler: _lazy__Rr4pU, lazy: true, middleware: false, method: "get" },
+  { route: '/api/seed-prod', handler: _lazy_XnTwRO, lazy: true, middleware: false, method: "get" },
+  { route: '/api/taches/:id', handler: _lazy_tXOF8A, lazy: true, middleware: false, method: "delete" },
+  { route: '/api/taches/demandes/:id/decider', handler: _lazy_FLHS07, lazy: true, middleware: false, method: "post" },
+  { route: '/api/taches/demandes', handler: _lazy_REG_0o, lazy: true, middleware: false, method: "get" },
+  { route: '/api/taches/demandes', handler: _lazy_lY3EIh, lazy: true, middleware: false, method: "post" },
+  { route: '/api/taches', handler: _lazy_Wskvxz, lazy: true, middleware: false, method: "get" },
+  { route: '/api/taches', handler: _lazy__FAssh, lazy: true, middleware: false, method: "post" },
+  { route: '/api/taches/statuts', handler: _lazy_mBZqY0, lazy: true, middleware: false, method: "get" },
+  { route: '/api/themes/:id', handler: _lazy_4K8FnY, lazy: true, middleware: false, method: "delete" },
+  { route: '/api/themes', handler: _lazy_Zt9iaI, lazy: true, middleware: false, method: "get" },
+  { route: '/api/themes', handler: _lazy_Aq5lsq, lazy: true, middleware: false, method: "post" },
+  { route: '/api/villes/:id', handler: _lazy_hWqpZP, lazy: true, middleware: false, method: "delete" },
+  { route: '/api/villes', handler: _lazy_WeEoPH, lazy: true, middleware: false, method: "get" },
+  { route: '/api/villes', handler: _lazy_IefStQ, lazy: true, middleware: false, method: "post" },
+  { route: '/__nuxt_error', handler: _lazy_YEdK_5, lazy: true, middleware: false, method: undefined },
   { route: '/__nuxt_island/**', handler: handler$1, lazy: false, middleware: false, method: undefined },
-  { route: '/**', handler: _lazy_Qp5LbB, lazy: true, middleware: false, method: undefined }
+  { route: '/**', handler: _lazy_YEdK_5, lazy: true, middleware: false, method: undefined }
 ];
 
 function createNitroApp() {
@@ -3603,6 +3605,56 @@ const index_post$c = defineEventHandler(async (event) => {
 const index_post$d = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
   __proto__: null,
   default: index_post$c
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const journal_get = defineEventHandler(async (event) => {
+  const id = getRouterParam(event, "id");
+  const query = getQuery$1(event);
+  const dateStr = query.date;
+  const targetDate = dateStr ? new Date(dateStr) : /* @__PURE__ */ new Date();
+  const startOfDay = new Date(targetDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(targetDate);
+  endOfDay.setHours(23, 59, 59, 999);
+  const taches = await prisma$1.tache.findMany({
+    where: {
+      employeId: id,
+      OR: [
+        // Tâches dont la deadline est dans la journée
+        {
+          date_limite: {
+            gte: startOfDay,
+            lte: endOfDay
+          }
+        },
+        // Tâches créées ce jour
+        {
+          createdAt: {
+            gte: startOfDay,
+            lte: endOfDay
+          }
+        }
+      ]
+    },
+    include: {
+      statutTache: true,
+      edition: {
+        include: { licence: true, ville: true }
+      },
+      themePub: true,
+      themeSponso: true
+    },
+    orderBy: { date_limite: "asc" }
+  });
+  return {
+    date: targetDate.toISOString().split("T")[0],
+    taches
+  };
+});
+
+const journal_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: journal_get
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const _id__delete$8 = defineEventHandler(async (event) => {
@@ -4785,13 +4837,24 @@ const index_post$4 = defineEventHandler(async (event) => {
   }
   const resolveTypeTache = () => {
     const t = body.typeTache || "";
-    if (t === "MONTEUR" || body.format_video || body.duree_cible || body.demandeur) return "MONTEUR";
-    if (t === "DESIGNER" || body.type_visuel || body.quantite) return "DESIGNER";
-    if (t === "DEV" || body.type_technique) return "DEV";
-    if (t === "Publication" || body.plateforme && body.type_pub) return "PUBLICATION";
-    if (t === "Sponsorisation (Ads)" || body.themeSponsoId || body.budget && !body.outil_mailing) return "SPONSORISATION";
-    if (t === "D\xE9marche Administrative" || body.type_demarche) return "ADMINISTRATIVE";
-    if (t === "Mailing (Newsletter)" || body.outil_mailing) return "MAILING";
+    if (t === "MONTEUR") return "MONTEUR";
+    if (t === "DESIGNER") return "DESIGNER";
+    if (t === "DEV") return "DEV";
+    if (t === "PUBLICATION") return "PUBLICATION";
+    if (t === "SPONSORISATION") return "SPONSORISATION";
+    if (t === "ADMINISTRATIVE") return "ADMINISTRATIVE";
+    if (t === "MAILING") return "MAILING";
+    if (t === "Publication") return "PUBLICATION";
+    if (t === "Sponsorisation (Ads)") return "SPONSORISATION";
+    if (t === "D\xE9marche Administrative") return "ADMINISTRATIVE";
+    if (t === "Mailing (Newsletter)") return "MAILING";
+    if (body.format_video || body.duree_cible || body.demandeur) return "MONTEUR";
+    if (body.type_technique) return "DEV";
+    if (body.plateforme && body.type_pub) return "PUBLICATION";
+    if (body.themeSponsoId || body.budget && !body.outil_mailing) return "SPONSORISATION";
+    if (body.type_demarche) return "ADMINISTRATIVE";
+    if (body.outil_mailing) return "MAILING";
+    if (body.type_visuel || body.quantite) return "DESIGNER";
     return "PUBLICATION";
   };
   const data = {
