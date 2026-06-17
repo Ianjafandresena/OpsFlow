@@ -93,7 +93,18 @@
               </div>
             </td>
             <td>
-              <span class="badge" :style="{background: t.statutTache?.couleur + '20', color: t.statutTache?.couleur, border: '1px solid ' + t.statutTache?.couleur}">{{ t.statutTache?.nom }}</span>
+              <span 
+                :class="[
+                  'badge',
+                  t.statutTache?.libelle === 'À faire' ? 'badge-neutral' :
+                  t.statutTache?.libelle === 'En cours' ? 'badge-info' :
+                  t.statutTache?.libelle === 'En attente' ? 'badge-warning' :
+                  (t.statutTache?.libelle === 'Terminé' || t.statutTache?.libelle === 'Publié') ? 'badge-success' :
+                  'badge-neutral'
+                ]"
+              >
+                {{ t.statutTache?.libelle || '—' }}
+              </span>
             </td>
             <td style="text-align:right;">
               <div class="actions-cell">
@@ -315,8 +326,12 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Plus as PlusIcon, Search as SearchIcon, Edit as EditIcon, Trash2 as TrashIcon, Eye as EyeIcon } from 'lucide-vue-next'
+
+onMounted(async () => {
+  await refreshTaches()
+})
 
 definePageMeta({ layout: 'admin' })
 

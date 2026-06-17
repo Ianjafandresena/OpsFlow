@@ -150,7 +150,16 @@
             <td class="truncate" :title="act.task">{{ act.task }}</td>
             <td style="color: var(--text-secondary);">{{ act.date }}</td>
             <td>
-              <span class="badge" :style="{background: act.color + '20', color: act.color, border: '1px solid ' + act.color}">{{ act.status }}</span>
+              <span class="badge" 
+                    :class="{
+                      'badge-neutral': act.status === 'À faire',
+                      'badge-info': act.status === 'En cours',
+                      'badge-warning': act.status === 'En attente',
+                      'badge-success': act.status === 'Terminé' || act.status === 'Publié'
+                    }"
+                    style="padding:0.35rem 0.6rem; font-size:0.75rem; border-radius:12px; font-weight:600; border: 1px solid transparent;">
+                {{ act.status }}
+              </span>
             </td>
           </tr>
         </tbody>
@@ -160,7 +169,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Megaphone as MegaphoneIcon, Film as FilmIcon, Palette as PaletteIcon, Users as UsersIcon } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'admin' })
@@ -177,6 +186,11 @@ const deciderDemande = async (id, decision) => {
   await refreshDemandes()
   await refreshTaches()
 }
+
+onMounted(async () => {
+  await refreshTaches()
+  await refreshDemandes()
+})
 
 const getModifDetails = (dem) => {
   if (!dem.donneesModif || !dem.tache) return null
@@ -256,8 +270,7 @@ const recentActivity = computed(() => {
     dept: t.employe?.poste?.departement?.nom_departement || 'N/A',
     task: t.titre,
     date: new Date(t.createdAt).toLocaleDateString(),
-    status: t.statutTache?.nom,
-    color: t.statutTache?.couleur
+    status: t.statutTache?.libelle || 'Inconnu'
   }))
 })
 </script>

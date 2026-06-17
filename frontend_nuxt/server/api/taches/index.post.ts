@@ -19,14 +19,31 @@ export default defineEventHandler(async (event) => {
   // Déterminer le TypeTache enum à partir du contexte frontend
   const resolveTypeTache = () => {
     const t = body.typeTache || ''
-    if (t === 'MONTEUR' || body.format_video || body.duree_cible || body.demandeur) return 'MONTEUR'
-    if (t === 'DESIGNER' || body.type_visuel || body.quantite) return 'DESIGNER'
-    if (t === 'DEV' || body.type_technique) return 'DEV'
     
-    if (t === 'Publication' || (body.plateforme && body.type_pub)) return 'PUBLICATION'
-    if (t === 'Sponsorisation (Ads)' || body.themeSponsoId || (body.budget && !body.outil_mailing)) return 'SPONSORISATION'
-    if (t === 'Démarche Administrative' || body.type_demarche) return 'ADMINISTRATIVE'
-    if (t === 'Mailing (Newsletter)' || body.outil_mailing) return 'MAILING'
+    // 1. Vérifier d'abord les valeurs enum explicites (déjà convertis)
+    if (t === 'MONTEUR') return 'MONTEUR'
+    if (t === 'DESIGNER') return 'DESIGNER'
+    if (t === 'DEV') return 'DEV'
+    if (t === 'PUBLICATION') return 'PUBLICATION'
+    if (t === 'SPONSORISATION') return 'SPONSORISATION'
+    if (t === 'ADMINISTRATIVE') return 'ADMINISTRATIVE'
+    if (t === 'MAILING') return 'MAILING'
+    
+    // 2. Vérifier les labels du formulaire CM (chaînes françaises du frontend)
+    if (t === 'Publication') return 'PUBLICATION'
+    if (t === 'Sponsorisation (Ads)') return 'SPONSORISATION'
+    if (t === 'Démarche Administrative') return 'ADMINISTRATIVE'
+    if (t === 'Mailing (Newsletter)') return 'MAILING'
+    
+    // 3. Heuristiques basées sur les champs spécialisés (quand typeTache n'est pas défini)
+    if (body.format_video || body.duree_cible || body.demandeur) return 'MONTEUR'
+    if (body.type_technique) return 'DEV'
+    if (body.plateforme && body.type_pub) return 'PUBLICATION'
+    if (body.themeSponsoId || (body.budget && !body.outil_mailing)) return 'SPONSORISATION'
+    if (body.type_demarche) return 'ADMINISTRATIVE'
+    if (body.outil_mailing) return 'MAILING'
+    // Note: type_visuel/quantite are last because CM defaultForm initializes them too
+    if (body.type_visuel || body.quantite) return 'DESIGNER'
     
     return 'PUBLICATION' // Défaut
   }

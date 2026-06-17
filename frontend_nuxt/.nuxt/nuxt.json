@@ -1,7 +1,7 @@
 {
-  "_hash": "JbVWH-HEgvz4wKke3wt3myNmSe3BdGima5DDmOY3tjw",
+  "_hash": "S7alZAwDTm_gxlbaDCbAnhlOcMjyY7EejNZ5kTB35w8",
   "project": {
-    "rootDir": "D:/planning/systeme_centralise/frontend_nuxt"
+    "rootDir": "D:/opsflow/OpsFlow/frontend_nuxt"
   },
   "versions": {
     "nuxt": "3.21.6"
