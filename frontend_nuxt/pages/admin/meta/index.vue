@@ -622,9 +622,10 @@ const engagementColor = (v) => {
 }
 
 .analyzing-overlay {
-  position: fixed; inset: 0; z-index: 1000;
-  background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+  position: fixed; inset: 0; z-index: 10000;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
   display: flex; align-items: center; justify-content: center;
+  padding: 2rem; box-sizing: border-box;
 }
 .analyzing-card {
   background: var(--bg-card); border-radius: 16px; padding: 2rem 3rem;

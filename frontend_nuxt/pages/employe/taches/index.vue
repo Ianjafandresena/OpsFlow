@@ -295,6 +295,10 @@
         <!-- CHAMPS COMMUNS A TOUS   -->
         <!-- ======================= -->
         <div class="form-group">
+          <label class="form-label">Lien / Livrable</label>
+          <input type="text" v-model="form.lien_livrable" class="form-input" placeholder="Lien Drive, Lien du Post, Lien externe..." />
+        </div>
+        <div class="form-group">
           <label class="form-label">Description / Détails / Brief</label>
           <textarea v-model="form.description" class="form-input" rows="3" placeholder="Informations complémentaires, liens, consignes..."></textarea>
         </div>
@@ -328,6 +332,24 @@
         </div>
       </form>
     </Modal>
+
+    <!-- Modal Terminer Tâche -->
+    <Modal :isOpen="terminerModal.isOpen" title="Terminer la Tâche" @close="terminerModal.isOpen = false">
+      <form @submit.prevent="submitTerminer" style="display:flex; flex-direction:column; gap:1rem;">
+        <p style="color:var(--text-secondary); font-size:0.875rem;">
+          Veuillez fournir le lien vers le livrable ou le post pour clôturer la tâche : <strong>{{ terminerModal.tache?.titre }}</strong>.
+        </p>
+        <div class="form-group">
+          <label class="form-label">Lien (Livrable / Post)</label>
+          <input type="url" v-model="terminerModal.lien_livrable" required class="form-input" placeholder="https://..." />
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.5rem;">
+          <button type="button" class="btn btn-secondary" @click="terminerModal.isOpen = false">Annuler</button>
+          <button type="submit" class="btn btn-primary">Valider et Terminer</button>
+        </div>
+      </form>
+    </Modal>
+    
     <TacheDetailModal :isOpen="detailModal" :tache="detailTache" @close="detailModal=false" />
   </div>
 </template>
@@ -451,7 +473,10 @@ const defaultForm = () => {
     type_visuel:'Affiche', quantite: 1,
     
     // Champs spécifiques Dev
-    type_technique:'Site Vitrine'
+    type_technique:'Site Vitrine',
+    
+    // Commun
+    lien_livrable: ''
   }
 }
 const form = ref(defaultForm())
@@ -496,7 +521,8 @@ const openEdit = (t) => {
     date_limite: getIsoTime(t.date_limite),
     date_demande: t.date_demande ? new Date(t.date_demande).toISOString().split('T')[0] : '',
     plateformes: t.plateforme ? t.plateforme.split(', ') : [],
-    action_publication: 'Programmer'
+    action_publication: 'Programmer',
+    lien_livrable: t.lien_livrable || ''
   }
   modal.value=true 
 }
@@ -609,13 +635,41 @@ const remove = (id) => {
   })
 }
 
+const terminerModal = ref({
+  isOpen: false,
+  tache: null,
+  lien_livrable: ''
+})
+
 const actionTerminer = (task) => {
   const statusTermine = statuts.value?.find(s => s.nom === 'Terminé' || s.libelle === 'Terminé')
   if (statusTermine) {
-    requireConfirm('Terminer la tâche ?', `Êtes-vous sûr de vouloir marquer la tâche "${task.titre}" comme terminée ?`, async () => {
-      await changeStatus(task.id, statusTermine.id)
-    })
+    if (userDept.value === 'Communication' || userDept.value === 'Audiovisuel' || userDept.value === 'Design') {
+      terminerModal.value = {
+        isOpen: true,
+        tache: task,
+        lien_livrable: task.lien_livrable || ''
+      }
+    } else {
+      requireConfirm('Terminer la tâche ?', `Êtes-vous sûr de vouloir marquer la tâche "${task.titre}" comme terminée ?`, async () => {
+        await changeStatus(task.id, statusTermine.id)
+      })
+    }
   }
+}
+
+const submitTerminer = async () => {
+  const statusTermine = statuts.value?.find(s => s.nom === 'Terminé' || s.libelle === 'Terminé')
+  if (statusTermine && terminerModal.value.tache) {
+    const t = terminerModal.value.tache
+    const d = new Date(t.date_limite)
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
+    const dtLocal = d.toISOString().slice(0, 16)
+    
+    await $fetch('/api/taches', { method: 'POST', body: { ...t, statutTacheId: statusTermine.id, date_limite: dtLocal, lien_livrable: terminerModal.value.lien_livrable } })
+    await refreshTaches()
+  }
+  terminerModal.value.isOpen = false
 }
 
 const actionDemanderModif = (task) => {
