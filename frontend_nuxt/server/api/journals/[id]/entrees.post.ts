@@ -17,7 +17,6 @@ export default defineEventHandler(async (event) => {
   try {
     const dateQuery = new Date(date)
 
-    // Using a transaction to upsert each entry
     const results = await prisma.$transaction(
       entrees.map((entree: any) => {
         const entryDate = entree.date ? new Date(entree.date) : dateQuery
@@ -34,22 +33,26 @@ export default defineEventHandler(async (event) => {
             contenu: entree.contenu,
             commentaire: entree.commentaire,
             admin_commentaire: entree.admin_commentaire !== undefined ? entree.admin_commentaire : undefined,
-            lien: entree.lien
+            lien: entree.lien,
+            evaluation_type: entree.evaluation_type !== undefined ? entree.evaluation_type : undefined,
+            evaluation_montant: entree.evaluation_montant !== undefined ? entree.evaluation_montant : undefined
           },
           create: {
             journalId,
             employeId: entree.employeId,
             date: entryDate,
             heure: entree.heure,
-            contenu: entree.contenu,
+            contenu: entree.contenu || '',
             commentaire: entree.commentaire,
             admin_commentaire: entree.admin_commentaire,
-            lien: entree.lien
+            lien: entree.lien,
+            evaluation_type: entree.evaluation_type,
+            evaluation_montant: entree.evaluation_montant
           }
         })
       })
     )
-    
+
     return { success: true, count: results.length }
   } catch (error) {
     console.error("Erreur POST /journals/:id/entrees:", error)

@@ -5,7 +5,7 @@ const prisma = new PrismaClient()
 export default defineEventHandler(async (event) => {
   const journalId = getRouterParam(event, 'id')
   const body = await readBody(event)
-  const { nom } = body
+  const { nom, employe1Id, employe2Id, employe3Id, employe4Id } = body
 
   if (!journalId || !nom) {
     throw createError({
@@ -15,11 +15,17 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const journal = await prisma.journalActivite.update({
+    const data: any = { nom }
+    if (employe1Id !== undefined) data.employe1Id = employe1Id
+    if (employe2Id !== undefined) data.employe2Id = employe2Id || null
+    if (employe3Id !== undefined) data.employe3Id = employe3Id || null
+    if (employe4Id !== undefined) data.employe4Id = employe4Id || null
+
+    const journal = await prisma.journal.update({
       where: { id: journalId },
-      data: { nom }
+      data
     })
-    
+
     return journal
   } catch (error) {
     console.error("Erreur PUT /journals/:id:", error)

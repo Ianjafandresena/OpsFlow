@@ -4,7 +4,7 @@ const prisma = new PrismaClient()
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
-  const { nom, employe1Id, employe2Id } = body
+  const { nom, employe1Id, employe2Id, employe3Id, employe4Id } = body
 
   if (!nom || !employe1Id) {
     throw createError({
@@ -18,10 +18,12 @@ export default defineEventHandler(async (event) => {
       data: {
         nom,
         employe1Id,
-        employe2Id: employe2Id || null
+        employe2Id: employe2Id || null,
+        employe3Id: employe3Id || null,
+        employe4Id: employe4Id || null
       }
     })
-    
+
     return newJournal
   } catch (error) {
     console.error("Erreur POST /journals:", error)

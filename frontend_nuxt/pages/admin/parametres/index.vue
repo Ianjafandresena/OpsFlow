@@ -91,12 +91,39 @@
         </div>
         <div class="card" style="padding:0; overflow:hidden;">
           <table class="data-table">
-            <thead><tr><th>Nom de la ville</th><th style="text-align: right;">Actions</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Nom de la ville</th>
+                <th>Statut</th>
+                <th style="text-align: right;">Actions</th>
+              </tr>
+            </thead>
             <tbody>
               <tr v-for="v in villes" :key="v.id">
-                <td style="font-weight: 600;">{{ v.nom_ville }}</td>
+                <td>
+                  <div style="font-weight: 600;">{{ v.nom_ville }}</div>
+                  <!-- Comment shown when status is A_CONTACTER or A_CONFIRMER -->
+                  <div v-if="v.statut !== 'NEUTRE' && v.statut_commentaire" style="font-size:0.75rem; color:var(--text-secondary); margin-top:0.25rem; max-width:200px;">
+                    {{ v.statut_commentaire }}
+                  </div>
+                </td>
+                <td>
+                  <select
+                    :value="v.statut || 'NEUTRE'"
+                    class="ville-statut-select"
+                    :class="villeStatutClass(v.statut)"
+                    @change="updateVilleStatut(v, $event.target.value)"
+                  >
+                    <option value="NEUTRE">Neutre</option>
+                    <option value="A_CONTACTER">À contacter</option>
+                    <option value="A_CONFIRMER">À confirmer</option>
+                  </select>
+                </td>
                 <td style="text-align: right;">
-                  <button class="btn-danger-ghost" @click="removeVille(v.id)" title="Supprimer" style="padding:0.25rem;"><TrashIcon :size="14" /></button>
+                  <div style="display:flex; justify-content:flex-end; gap:0.25rem;">
+                    <button class="btn btn-secondary btn-icon" @click="openVilleComment(v)" title="Notes de contact" style="padding:0.25rem;"><EditIcon :size="14" /></button>
+                    <button class="btn-danger-ghost" @click="removeVille(v.id)" title="Supprimer" style="padding:0.25rem;"><TrashIcon :size="14" /></button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -221,6 +248,35 @@
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
           <button type="submit" class="btn btn-primary">Créer</button>
+        </div>
+      </form>
+    </Modal>
+
+    <!-- Modal COMMENTAIRE VILLE -->
+    <Modal :isOpen="modalVilleComment" :title="`Notes — ${formVilleComment.nom_ville}`" @close="modalVilleComment = false">
+      <form @submit.prevent="saveVilleComment" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div class="form-group">
+          <label class="form-label">Statut</label>
+          <select v-model="formVilleComment.statut" class="form-input">
+            <option value="NEUTRE">Neutre</option>
+            <option value="A_CONTACTER">À contacter</option>
+            <option value="A_CONFIRMER">À confirmer</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Informations & Contacts</label>
+          <textarea
+            v-model="formVilleComment.statut_commentaire"
+            class="form-input"
+            rows="5"
+            placeholder="Contact, numéro de téléphone, emails, notes importantes..."
+            style="resize: vertical;"
+          ></textarea>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">Ces informations sont visibles dans le tableau des villes.</div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+          <button type="button" class="btn btn-secondary" @click="modalVilleComment = false">Annuler</button>
+          <button type="submit" class="btn btn-primary">Enregistrer</button>
         </div>
       </form>
     </Modal>
@@ -353,6 +409,12 @@ const removeType = (id) => {
 const modalVille = ref(false)
 const formVille = ref({ nom_ville: '' })
 
+const villeStatutClass = (statut) => {
+  if (statut === 'A_CONTACTER') return 'statut-a-contacter'
+  if (statut === 'A_CONFIRMER') return 'statut-a-confirmer'
+  return 'statut-neutre'
+}
+
 const openVilleCreate = () => { formVille.value = { nom_ville: '' }; modalVille.value = true }
 const saveVille = async () => {
   await $fetch('/api/villes', { method: 'POST', body: formVille.value })
@@ -364,6 +426,32 @@ const removeVille = (id) => {
     await $fetch(`/api/villes/${id}`, { method: 'DELETE' })
     await refreshVilles()
   })
+}
+
+const updateVilleStatut = async (ville, newStatut) => {
+  await $fetch(`/api/villes/${ville.id}`, {
+    method: 'PUT',
+    body: { statut: newStatut, statut_commentaire: ville.statut_commentaire }
+  })
+  await refreshVilles()
+}
+
+// Ville comment modal
+const modalVilleComment = ref(false)
+const formVilleComment = ref({ id: '', nom_ville: '', statut: 'NEUTRE', statut_commentaire: '' })
+
+const openVilleComment = (v) => {
+  formVilleComment.value = { id: v.id, nom_ville: v.nom_ville, statut: v.statut || 'NEUTRE', statut_commentaire: v.statut_commentaire || '' }
+  modalVilleComment.value = true
+}
+
+const saveVilleComment = async () => {
+  await $fetch(`/api/villes/${formVilleComment.value.id}`, {
+    method: 'PUT',
+    body: { statut: formVilleComment.value.statut, statut_commentaire: formVilleComment.value.statut_commentaire }
+  })
+  await refreshVilles()
+  modalVilleComment.value = false
 }
 
 // --- CRUD THÈMES DE PUBLICATION ---
@@ -390,4 +478,22 @@ const removeTheme = (id) => {
 </script>
 
 <style scoped>
+.ville-statut-select {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 99px;
+  border: 1px solid var(--border-light);
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.4rem center;
+  padding-right: 1.4rem;
+}
+.statut-neutre { background: var(--bg-surface-hover); color: var(--text-secondary); border-color: var(--border-light); }
+.statut-a-contacter { background: #f59e0b15; color: #d97706; border-color: #f59e0b40; }
+.statut-a-confirmer { background: #10b98115; color: #059669; border-color: #10b98140; }
 </style>
