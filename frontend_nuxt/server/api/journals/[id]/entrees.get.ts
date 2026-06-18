@@ -6,23 +6,31 @@ export default defineEventHandler(async (event) => {
   const journalId = getRouterParam(event, 'id')
   const query = getQuery(event)
   const dateStr = query.date as string
+  const startDateStr = query.startDate as string
+  const endDateStr = query.endDate as string
 
-  if (!journalId || !dateStr) {
+  if (!journalId || (!dateStr && !startDateStr)) {
     throw createError({
       statusCode: 400,
-      statusMessage: "journalId et date sont requis"
+      statusMessage: "journalId et (date ou startDate/endDate) sont requis"
     })
   }
 
   try {
-    const dateQuery = new Date(dateStr)
-    // Fix issue where midnight UTC matches another day if there's a timezone difference,
-    // Since it's a date only, we just search for exactly this date if saved properly, or a range
+    let dateCondition: any = {}
+    if (startDateStr && endDateStr) {
+      dateCondition = {
+        gte: new Date(startDateStr),
+        lte: new Date(endDateStr)
+      }
+    } else if (dateStr) {
+      dateCondition = new Date(dateStr)
+    }
     
     const entrees = await prisma.entreeJournal.findMany({
       where: {
         journalId,
-        date: dateQuery
+        date: dateCondition
       },
       include: {
         tache: {

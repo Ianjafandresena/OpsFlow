@@ -20,24 +20,31 @@ export default defineEventHandler(async (event) => {
     // Using a transaction to upsert each entry
     const results = await prisma.$transaction(
       entrees.map((entree: any) => {
+        const entryDate = entree.date ? new Date(entree.date) : dateQuery
         return prisma.entreeJournal.upsert({
           where: {
             journalId_employeId_date_heure: {
               journalId,
               employeId: entree.employeId,
-              date: dateQuery,
+              date: entryDate,
               heure: entree.heure
             }
           },
           update: {
-            contenu: entree.contenu
+            contenu: entree.contenu,
+            commentaire: entree.commentaire,
+            admin_commentaire: entree.admin_commentaire !== undefined ? entree.admin_commentaire : undefined,
+            lien: entree.lien
           },
           create: {
             journalId,
             employeId: entree.employeId,
-            date: dateQuery,
+            date: entryDate,
             heure: entree.heure,
-            contenu: entree.contenu
+            contenu: entree.contenu,
+            commentaire: entree.commentaire,
+            admin_commentaire: entree.admin_commentaire,
+            lien: entree.lien
           }
         })
       })

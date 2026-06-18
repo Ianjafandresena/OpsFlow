@@ -95,9 +95,29 @@
       <form @submit.prevent="save" style="display:flex; flex-direction:column; gap:1rem;">
         
         <!-- ======================= -->
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label class="form-label">Catégorie de la Tâche</label>
+          <select v-model="form.isAutre" class="form-input">
+            <option :value="false">Tâche spécifique ({{ userDept }})</option>
+            <option :value="true">Autre (Générique)</option>
+          </select>
+        </div>
+
+        <!-- FORMULAIRE AUTRE (Générique) -->
+        <template v-if="form.isAutre">
+          <div class="form-group">
+            <label class="form-label">Titre de la tâche</label>
+            <input type="text" v-model="form.titre" required class="form-input" placeholder="Titre explicite..." />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date butoir (ou date de réalisation)</label>
+            <input type="datetime-local" v-model="form.date_limite" required class="form-input" />
+          </div>
+        </template>
+
         <!-- FORMULAIRE COMMUNICATION-->
         <!-- ======================= -->
-        <template v-if="userDept === 'Communication'">
+        <template v-else-if="userDept === 'Communication'">
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
             <div class="form-group">
               <label class="form-label">Type de Tâche</label>
@@ -106,6 +126,7 @@
                 <option>Démarche Administrative</option>
                 <option>Mailing (Newsletter)</option>
                 <option>Sponsorisation (Ads)</option>
+                <option>Autre</option>
               </select>
             </div>
             <div class="form-group">
@@ -521,7 +542,7 @@ const openEdit = (t) => {
     date_limite: getIsoTime(t.date_limite),
     date_demande: t.date_demande ? new Date(t.date_demande).toISOString().split('T')[0] : '',
     plateformes: t.plateforme ? t.plateforme.split(', ') : [],
-    action_publication: 'Programmer',
+    action_publication: 'Programmer', isAutre: false,
     lien_livrable: t.lien_livrable || ''
   }
   modal.value=true 

@@ -2173,16 +2173,16 @@ _wH6JrtIxmaSoA8lCPWFnE9z4lQeXW6H5z3l5aymEQw
 const assets = {
   "/index.mjs": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"2e416-XZBvZV8uJ/u4LJNKvUU9wRXmCXE\"",
-    "mtime": "2026-06-18T00:24:44.816Z",
-    "size": 189462,
+    "etag": "\"2f345-hLI1+xTxAv7oMfG0K2o3cHk9tWA\"",
+    "mtime": "2026-06-18T02:13:47.439Z",
+    "size": 193349,
     "path": "index.mjs"
   },
   "/index.mjs.map": {
     "type": "application/json",
-    "etag": "\"ad210-5Ec353fpbCC9FQD8LTmoGe2hi+Y\"",
-    "mtime": "2026-06-18T00:24:44.817Z",
-    "size": 709136,
+    "etag": "\"b0897-QajSArnlQUitTziKJK1vf8yZTTc\"",
+    "mtime": "2026-06-18T02:13:47.440Z",
+    "size": 723095,
     "path": "index.mjs.map"
   }
 };
@@ -2818,6 +2818,7 @@ const _lazy_wMOeDO = () => Promise.resolve().then(function () { return journal_g
 const _lazy_MIvsP0 = () => Promise.resolve().then(function () { return _id__delete$9; });
 const _lazy_Bbamcq = () => Promise.resolve().then(function () { return index_get$h; });
 const _lazy_pdUcZT = () => Promise.resolve().then(function () { return index_post$d; });
+const _lazy_7GVeoI = () => Promise.resolve().then(function () { return _id__put$1; });
 const _lazy_1XvbhB = () => Promise.resolve().then(function () { return entrees_get$1; });
 const _lazy_nOPQ0w = () => Promise.resolve().then(function () { return entrees_post$1; });
 const _lazy_bBxPgQ = () => Promise.resolve().then(function () { return index_get$f; });
@@ -2865,6 +2866,7 @@ const handlers = [
   { route: '/api/equipe/:id', handler: _lazy_MIvsP0, lazy: true, middleware: false, method: "delete" },
   { route: '/api/equipe', handler: _lazy_Bbamcq, lazy: true, middleware: false, method: "get" },
   { route: '/api/equipe', handler: _lazy_pdUcZT, lazy: true, middleware: false, method: "post" },
+  { route: '/api/journals/:id', handler: _lazy_7GVeoI, lazy: true, middleware: false, method: "put" },
   { route: '/api/journals/:id/entrees', handler: _lazy_1XvbhB, lazy: true, middleware: false, method: "get" },
   { route: '/api/journals/:id/entrees', handler: _lazy_nOPQ0w, lazy: true, middleware: false, method: "post" },
   { route: '/api/journals', handler: _lazy_bBxPgQ, lazy: true, middleware: false, method: "get" },
@@ -3244,10 +3246,10 @@ const styles$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
   default: styles
 }, Symbol.toStringTag, { value: 'Module' }));
 
-const prisma$5 = new PrismaClient();
+const prisma$6 = new PrismaClient();
 
 const index_get$k = defineEventHandler(async (event) => {
-  return await prisma$5.employe.findMany({
+  return await prisma$6.employe.findMany({
     include: {
       poste: true,
       editionsGerees: {
@@ -3271,7 +3273,7 @@ const index_post$g = defineEventHandler(async (event) => {
   if (!body.employeId || !body.editionId) {
     throw createError({ statusCode: 400, statusMessage: "Employe et Edition requis" });
   }
-  return await prisma$5.employe.update({
+  return await prisma$6.employe.update({
     where: { id: body.employeId },
     data: {
       editionsGerees: {
@@ -3291,7 +3293,7 @@ const remove_post = defineEventHandler(async (event) => {
   if (!body.employeId || !body.editionId) {
     throw createError({ statusCode: 400, statusMessage: "Employe et Edition requis" });
   }
-  return await prisma$5.employe.update({
+  return await prisma$6.employe.update({
     where: { id: body.employeId },
     data: {
       editionsGerees: {
@@ -3311,7 +3313,7 @@ const login_post = defineEventHandler(async (event) => {
   if (!body.email || !body.mot_de_passe) {
     throw createError({ statusCode: 400, statusMessage: "Email et mot de passe requis." });
   }
-  const employe = await prisma$5.employe.findUnique({
+  const employe = await prisma$6.employe.findUnique({
     where: { email: body.email },
     include: { role: true, poste: { include: { departement: true } } }
   });
@@ -3369,22 +3371,22 @@ const manage_post = defineEventHandler(async (event) => {
   if (!payload || payload.role !== "ADMIN") throw createError({ statusCode: 403, statusMessage: "R\xE9serv\xE9 aux admins" });
   const body = await readBody(event);
   if (!body.employeId || !body.action) throw createError({ statusCode: 400, statusMessage: "Param\xE8tres manquants" });
-  const employe = await prisma$5.employe.findUnique({ where: { id: body.employeId } });
+  const employe = await prisma$6.employe.findUnique({ where: { id: body.employeId } });
   if (!employe) throw createError({ statusCode: 404, statusMessage: "Employ\xE9 introuvable" });
   if (body.action === "validate") {
     const updateData = { is_active: true };
     if ((_a = body.data) == null ? void 0 : _a.posteId) updateData.posteId = body.data.posteId;
     if ((_b = body.data) == null ? void 0 : _b.roleId) updateData.roleId = body.data.roleId;
-    await prisma$5.employe.update({ where: { id: body.employeId }, data: updateData });
+    await prisma$6.employe.update({ where: { id: body.employeId }, data: updateData });
     return { success: true, message: `Compte de ${employe.nom} ${employe.prenom} activ\xE9.` };
   }
   if (body.action === "reject") {
-    await prisma$5.employe.delete({ where: { id: body.employeId } });
+    await prisma$6.employe.delete({ where: { id: body.employeId } });
     return { success: true, message: "Compte supprim\xE9." };
   }
   if (body.action === "set_password") {
     if (!((_c = body.data) == null ? void 0 : _c.password)) throw createError({ statusCode: 400, statusMessage: "Mot de passe manquant" });
-    await prisma$5.employe.update({
+    await prisma$6.employe.update({
       where: { id: body.employeId },
       data: { mot_de_passe: hashPassword(body.data.password) }
     });
@@ -3392,7 +3394,7 @@ const manage_post = defineEventHandler(async (event) => {
   }
   if (body.action === "set_role") {
     if (!((_d = body.data) == null ? void 0 : _d.roleId)) throw createError({ statusCode: 400, statusMessage: "R\xF4le manquant" });
-    await prisma$5.employe.update({
+    await prisma$6.employe.update({
       where: { id: body.employeId },
       data: { roleId: body.data.roleId }
     });
@@ -3400,7 +3402,7 @@ const manage_post = defineEventHandler(async (event) => {
   }
   if (body.action === "toggle_active") {
     const newStatus = !employe.is_active;
-    await prisma$5.employe.update({
+    await prisma$6.employe.update({
       where: { id: body.employeId },
       data: { is_active: newStatus }
     });
@@ -3419,13 +3421,13 @@ const me_get = defineEventHandler(async (event) => {
   if (!token) throw createError({ statusCode: 401, statusMessage: "Non authentifi\xE9" });
   const payload = verifyToken(token);
   if (!payload || !payload.id) throw createError({ statusCode: 401, statusMessage: "Session expir\xE9e ou invalide" });
-  const employe = await prisma$5.employe.findUnique({
+  const employe = await prisma$6.employe.findUnique({
     where: { id: payload.id },
     include: { role: true, poste: { include: { departement: true } } }
   });
   if (!employe || !employe.is_active) throw createError({ statusCode: 401, statusMessage: "Compte inactif ou introuvable" });
   if (payload.simulatedPosteId) {
-    const simulatedPoste = await prisma$5.poste.findUnique({
+    const simulatedPoste = await prisma$6.poste.findUnique({
       where: { id: payload.simulatedPosteId },
       include: { departement: true }
     });
@@ -3448,7 +3450,7 @@ const pending_get = defineEventHandler(async (event) => {
   if (!token) throw createError({ statusCode: 401, statusMessage: "Non authentifi\xE9" });
   const payload = verifyToken(token);
   if (!payload || payload.role !== "ADMIN") throw createError({ statusCode: 403, statusMessage: "R\xE9serv\xE9 aux admins" });
-  return await prisma$5.employe.findMany({
+  return await prisma$6.employe.findMany({
     where: { is_active: false },
     include: { role: true, poste: { include: { departement: true } } },
     orderBy: { nom: "asc" }
@@ -3479,22 +3481,22 @@ const register_post = defineEventHandler(async (event) => {
   if (!nom || !prenom) {
     throw createError({ statusCode: 400, statusMessage: "Le nom et le pr\xE9nom ne peuvent pas \xEAtre vides." });
   }
-  const existing = await prisma$5.employe.findUnique({ where: { email } });
+  const existing = await prisma$6.employe.findUnique({ where: { email } });
   if (existing) {
     throw createError({ statusCode: 400, statusMessage: "Cet email est d\xE9j\xE0 utilis\xE9." });
   }
-  let role = await prisma$5.role.findUnique({ where: { niveau_acces: "CM" } });
+  let role = await prisma$6.role.findUnique({ where: { niveau_acces: "CM" } });
   if (!role) {
-    role = await prisma$5.role.findFirst();
+    role = await prisma$6.role.findFirst();
   }
   if (!role) {
     throw createError({ statusCode: 500, statusMessage: "Aucun r\xF4le configur\xE9. Contactez un administrateur." });
   }
-  let poste = await prisma$5.poste.findFirst();
+  let poste = await prisma$6.poste.findFirst();
   if (!poste) {
     throw createError({ statusCode: 500, statusMessage: "Aucun poste configur\xE9. Contactez un administrateur." });
   }
-  await prisma$5.employe.create({
+  await prisma$6.employe.create({
     data: {
       nom,
       prenom,
@@ -3523,7 +3525,7 @@ const simulate_post = defineEventHandler(async (event) => {
   if (!payload || !payload.id || payload.role !== "ADMIN") {
     throw createError({ statusCode: 403, statusMessage: "Seul un administrateur peut simuler un r\xF4le" });
   }
-  const poste = await prisma$5.poste.findUnique({ where: { id: posteId } });
+  const poste = await prisma$6.poste.findUnique({ where: { id: posteId } });
   if (!poste) throw createError({ statusCode: 404, statusMessage: "Poste introuvable" });
   const newToken = signToken({
     id: payload.id,
@@ -3550,7 +3552,7 @@ const _id__delete$a = defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
   if (!id) throw createError({ statusCode: 400, statusMessage: "ID manquant" });
   try {
-    await prisma$5.editionPage.delete({
+    await prisma$6.editionPage.delete({
       where: { id }
     });
     return { success: true };
@@ -3565,7 +3567,7 @@ const _id__delete$b = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePrope
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const index_get$i = defineEventHandler(async (event) => {
-  return await prisma$5.editionPage.findMany({
+  return await prisma$6.editionPage.findMany({
     include: {
       licence: true,
       ville: true
@@ -3585,7 +3587,7 @@ const index_post$e = defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: "Licence et Ville requises" });
   }
   if (body.id) {
-    return await prisma$5.editionPage.update({
+    return await prisma$6.editionPage.update({
       where: { id: body.id },
       data: {
         licenceId: body.licenceId,
@@ -3597,7 +3599,7 @@ const index_post$e = defineEventHandler(async (event) => {
       include: { licence: true, ville: true }
     });
   } else {
-    return await prisma$5.editionPage.create({
+    return await prisma$6.editionPage.create({
       data: {
         licenceId: body.licenceId,
         villeId: body.villeId,
@@ -3624,7 +3626,7 @@ const journal_get = defineEventHandler(async (event) => {
   startOfDay.setHours(0, 0, 0, 0);
   const endOfDay = new Date(targetDate);
   endOfDay.setHours(23, 59, 59, 999);
-  const taches = await prisma$5.tache.findMany({
+  const taches = await prisma$6.tache.findMany({
     where: {
       employeId: id,
       OR: [
@@ -3669,7 +3671,7 @@ const _id__delete$8 = defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
   if (!id) throw createError({ statusCode: 400, statusMessage: "ID manquant" });
   try {
-    await prisma$5.employe.delete({
+    await prisma$6.employe.delete({
       where: { id }
     });
     return { success: true };
@@ -3684,7 +3686,7 @@ const _id__delete$9 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePrope
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const index_get$g = defineEventHandler(async (event) => {
-  const employes = await prisma$5.employe.findMany({
+  const employes = await prisma$6.employe.findMany({
     include: {
       poste: { include: { departement: true } },
       role: true,
@@ -3714,7 +3716,7 @@ const index_post$c = defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: "Champs obligatoires manquants" });
   }
   if (body.id) {
-    return await prisma$5.employe.update({
+    return await prisma$6.employe.update({
       where: { id: body.id },
       data: {
         nom: body.nom,
@@ -3726,7 +3728,7 @@ const index_post$c = defineEventHandler(async (event) => {
       include: { poste: { include: { departement: true } }, role: true }
     });
   } else {
-    return await prisma$5.employe.create({
+    return await prisma$6.employe.create({
       data: {
         nom: body.nom,
         prenom: body.prenom,
@@ -3744,23 +3746,64 @@ const index_post$d = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProper
   default: index_post$c
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const prisma$5 = new PrismaClient();
+const _id__put = defineEventHandler(async (event) => {
+  const journalId = getRouterParam(event, "id");
+  const body = await readBody(event);
+  const { nom } = body;
+  if (!journalId || !nom) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: "Nom requis"
+    });
+  }
+  try {
+    const journal = await prisma$5.journalActivite.update({
+      where: { id: journalId },
+      data: { nom }
+    });
+    return journal;
+  } catch (error) {
+    console.error("Erreur PUT /journals/:id:", error);
+    throw createError({
+      statusCode: 500,
+      statusMessage: "Impossible de modifier le journal"
+    });
+  }
+});
+
+const _id__put$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: _id__put
+}, Symbol.toStringTag, { value: 'Module' }));
+
 const prisma$4 = new PrismaClient();
 const entrees_get = defineEventHandler(async (event) => {
   const journalId = getRouterParam(event, "id");
   const query = getQuery$1(event);
   const dateStr = query.date;
-  if (!journalId || !dateStr) {
+  const startDateStr = query.startDate;
+  const endDateStr = query.endDate;
+  if (!journalId || !dateStr && !startDateStr) {
     throw createError({
       statusCode: 400,
-      statusMessage: "journalId et date sont requis"
+      statusMessage: "journalId et (date ou startDate/endDate) sont requis"
     });
   }
   try {
-    const dateQuery = new Date(dateStr);
+    let dateCondition = {};
+    if (startDateStr && endDateStr) {
+      dateCondition = {
+        gte: new Date(startDateStr),
+        lte: new Date(endDateStr)
+      };
+    } else if (dateStr) {
+      dateCondition = new Date(dateStr);
+    }
     const entrees = await prisma$4.entreeJournal.findMany({
       where: {
         journalId,
-        date: dateQuery
+        date: dateCondition
       },
       include: {
         tache: {
@@ -3798,24 +3841,31 @@ const entrees_post = defineEventHandler(async (event) => {
     const dateQuery = new Date(date);
     const results = await prisma$3.$transaction(
       entrees.map((entree) => {
+        const entryDate = entree.date ? new Date(entree.date) : dateQuery;
         return prisma$3.entreeJournal.upsert({
           where: {
             journalId_employeId_date_heure: {
               journalId,
               employeId: entree.employeId,
-              date: dateQuery,
+              date: entryDate,
               heure: entree.heure
             }
           },
           update: {
-            contenu: entree.contenu
+            contenu: entree.contenu,
+            commentaire: entree.commentaire,
+            admin_commentaire: entree.admin_commentaire !== void 0 ? entree.admin_commentaire : void 0,
+            lien: entree.lien
           },
           create: {
             journalId,
             employeId: entree.employeId,
-            date: dateQuery,
+            date: entryDate,
             heure: entree.heure,
-            contenu: entree.contenu
+            contenu: entree.contenu,
+            commentaire: entree.commentaire,
+            admin_commentaire: entree.admin_commentaire,
+            lien: entree.lien
           }
         });
       })
@@ -3901,7 +3951,7 @@ const _id__delete$6 = defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
   if (!id) throw createError({ statusCode: 400, statusMessage: "ID manquant" });
   try {
-    await prisma$5.licence.delete({
+    await prisma$6.licence.delete({
       where: { id }
     });
     return { success: true };
@@ -3916,7 +3966,7 @@ const _id__delete$7 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePrope
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const index_get$c = defineEventHandler(async (event) => {
-  return await prisma$5.licence.findMany({
+  return await prisma$6.licence.findMany({
     orderBy: { nom_complet: "asc" }
   });
 });
@@ -3931,7 +3981,7 @@ const index_post$8 = defineEventHandler(async (event) => {
   if (!body.nom_complet || !body.sigle) {
     throw createError({ statusCode: 400, statusMessage: "Nom et sigle requis" });
   }
-  return await prisma$5.licence.create({
+  return await prisma$6.licence.create({
     data: {
       nom_complet: body.nom_complet,
       sigle: body.sigle
@@ -4673,7 +4723,7 @@ const sync_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const index_get$a = defineEventHandler(async (event) => {
-  return await prisma$5.poste.findMany({
+  return await prisma$6.poste.findMany({
     include: { departement: true },
     orderBy: { titre_poste: "asc" }
   });
@@ -4685,7 +4735,7 @@ const index_get$b = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePropert
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const index_get$8 = defineEventHandler(async (event) => {
-  return await prisma$5.role.findMany({
+  return await prisma$6.role.findMany({
     orderBy: { niveau_acces: "asc" }
   });
 });
@@ -4752,7 +4802,7 @@ const seedProd_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProp
 const _id__delete$4 = defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
   if (!id) throw createError({ statusCode: 400, statusMessage: "ID manquant" });
-  await prisma$5.tache.delete({
+  await prisma$6.tache.delete({
     where: { id }
   });
   return { success: true };
@@ -4773,7 +4823,7 @@ const decider_post = defineEventHandler(async (event) => {
   if (body.decision !== "APPROVE" && body.decision !== "REJECT") {
     throw createError({ statusCode: 400, statusMessage: "decision doit \xEAtre APPROVE ou REJECT" });
   }
-  const demande = await prisma$5.demandeTache.findUnique({
+  const demande = await prisma$6.demandeTache.findUnique({
     where: { id }
   });
   if (!demande) {
@@ -4784,7 +4834,7 @@ const decider_post = defineEventHandler(async (event) => {
   }
   if (body.decision === "APPROVE") {
     if (demande.typeDemande === "SUPPRESSION") {
-      await prisma$5.tache.delete({
+      await prisma$6.tache.delete({
         where: { id: demande.tacheId }
       });
       return { success: true, message: "T\xE2che supprim\xE9e avec succ\xE8s" };
@@ -4824,18 +4874,18 @@ const decider_post = defineEventHandler(async (event) => {
           }
         }
       }
-      await prisma$5.tache.update({
+      await prisma$6.tache.update({
         where: { id: demande.tacheId },
         data: updateData
       });
-      const updatedDemande = await prisma$5.demandeTache.update({
+      const updatedDemande = await prisma$6.demandeTache.update({
         where: { id },
         data: { statut: "ACCEPTEE" }
       });
       return { success: true, message: "Modification appliqu\xE9e avec succ\xE8s", demande: updatedDemande };
     }
   } else {
-    const updatedDemande = await prisma$5.demandeTache.update({
+    const updatedDemande = await prisma$6.demandeTache.update({
       where: { id },
       data: { statut: "REFUSEE" }
     });
@@ -4851,7 +4901,7 @@ const decider_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProp
 const index_get$6 = defineEventHandler(async (event) => {
   const query = getQuery$1(event);
   const statut = query.statut || "EN_ATTENTE";
-  const demandes = await prisma$5.demandeTache.findMany({
+  const demandes = await prisma$6.demandeTache.findMany({
     where: {
       statut
     },
@@ -4897,7 +4947,7 @@ const index_post$6 = defineEventHandler(async (event) => {
   if (body.typeDemande !== "MODIFICATION" && body.typeDemande !== "SUPPRESSION") {
     throw createError({ statusCode: 400, statusMessage: "typeDemande doit \xEAtre MODIFICATION ou SUPPRESSION" });
   }
-  const task = await prisma$5.tache.findUnique({
+  const task = await prisma$6.tache.findUnique({
     where: { id: body.tacheId }
   });
   if (!task) {
@@ -4907,7 +4957,7 @@ const index_post$6 = defineEventHandler(async (event) => {
   if (body.typeDemande === "MODIFICATION" && body.donneesModif) {
     stringifiedDonneesModif = JSON.stringify(body.donneesModif);
   }
-  const demande = await prisma$5.demandeTache.create({
+  const demande = await prisma$6.demandeTache.create({
     data: {
       tacheId: body.tacheId,
       typeDemande: body.typeDemande,
@@ -4947,7 +4997,7 @@ const index_get$4 = defineEventHandler(async (event) => {
       }
     };
   }
-  return await prisma$5.tache.findMany({
+  return await prisma$6.tache.findMany({
     where,
     include: {
       employe: true,
@@ -4968,7 +5018,7 @@ const index_get$5 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePropert
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const index_post$4 = defineEventHandler(async (event) => {
-  var _a, _b, _c, _d;
+  var _a, _b, _c, _d, _e, _f;
   const body = await readBody(event);
   const optionalFields = [
     "plateforme",
@@ -5042,17 +5092,18 @@ const index_post$4 = defineEventHandler(async (event) => {
     date_demande: body.date_demande ? new Date(body.date_demande) : null,
     date_resultat: body.date_resultat ? new Date(body.date_resultat) : null,
     outil_mailing: body.outil_mailing,
-    demandeur: body.demandeur
+    demandeur: body.demandeur,
+    lien_livrable: body.lien_livrable
   };
   if (body.id) {
-    const updatedTache = await prisma$5.tache.update({
+    const updatedTache = await prisma$6.tache.update({
       where: { id: body.id },
       data,
       include: { statutTache: true }
     });
-    if (((_b = (_a = updatedTache.statutTache) == null ? void 0 : _a.libelle) == null ? void 0 : _b.toLowerCase()) === "termin\xE9" || ((_d = (_c = updatedTache.statutTache) == null ? void 0 : _c.libelle) == null ? void 0 : _d.toLowerCase()) === "termin\xE9e") {
+    if (((_b = (_a = updatedTache.statutTache) == null ? void 0 : _a.nom) == null ? void 0 : _b.toLowerCase()) === "termin\xE9" || ((_d = (_c = updatedTache.statutTache) == null ? void 0 : _c.libelle) == null ? void 0 : _d.toLowerCase()) === "termin\xE9" || ((_f = (_e = updatedTache.statutTache) == null ? void 0 : _e.libelle) == null ? void 0 : _f.toLowerCase()) === "termin\xE9e") {
       try {
-        const journal = await prisma$5.journal.findFirst({
+        const journal = await prisma$6.journal.findFirst({
           where: {
             OR: [
               { employe1Id: body.employeId },
@@ -5068,7 +5119,7 @@ const index_post$4 = defineEventHandler(async (event) => {
           const heure = `${now.getHours().toString().padStart(2, "0")}:${roundedMinutes}`;
           const today = /* @__PURE__ */ new Date();
           today.setHours(0, 0, 0, 0);
-          await prisma$5.entreeJournal.upsert({
+          await prisma$6.entreeJournal.upsert({
             where: {
               journalId_employeId_date_heure: {
                 journalId: journal.id,
@@ -5079,7 +5130,8 @@ const index_post$4 = defineEventHandler(async (event) => {
             },
             update: {
               contenu: `T\xE2che termin\xE9e : ${updatedTache.titre}`,
-              tacheId: updatedTache.id
+              tacheId: updatedTache.id,
+              lien: updatedTache.lien_livrable
             },
             create: {
               journalId: journal.id,
@@ -5087,7 +5139,8 @@ const index_post$4 = defineEventHandler(async (event) => {
               date: today,
               heure,
               contenu: `T\xE2che termin\xE9e : ${updatedTache.titre}`,
-              tacheId: updatedTache.id
+              tacheId: updatedTache.id,
+              lien: updatedTache.lien_livrable
             }
           });
           console.log(`Entr\xE9e de journal automatique ajout\xE9e pour la t\xE2che ${updatedTache.id} \xE0 ${heure}`);
@@ -5100,7 +5153,7 @@ const index_post$4 = defineEventHandler(async (event) => {
   } else {
     console.log("--- CREATING TACHE ---");
     console.log(data);
-    return await prisma$5.tache.create({ data });
+    return await prisma$6.tache.create({ data });
   }
 });
 
@@ -5110,7 +5163,7 @@ const index_post$5 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProper
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const statuts_get = defineEventHandler(async (event) => {
-  const statuts = await prisma$5.statutTache.findMany();
+  const statuts = await prisma$6.statutTache.findMany();
   const details = {
     "\xC0 faire": { couleur: "#64748b", niveau_progression: 0 },
     "En cours": { couleur: "#3b82f6", niveau_progression: 1 },
@@ -5139,7 +5192,7 @@ const _id__delete$2 = defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
   if (!id) throw createError({ statusCode: 400, statusMessage: "ID manquant" });
   try {
-    await prisma$5.theme.delete({
+    await prisma$6.theme.delete({
       where: { id }
     });
     return { success: true };
@@ -5154,7 +5207,7 @@ const _id__delete$3 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePrope
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const index_get$2 = defineEventHandler(async (event) => {
-  return await prisma$5.theme.findMany({
+  return await prisma$6.theme.findMany({
     orderBy: { nom_theme: "asc" }
   });
 });
@@ -5170,12 +5223,12 @@ const index_post$2 = defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: "Nom du th\xE8me requis" });
   }
   if (body.id) {
-    return await prisma$5.theme.update({
+    return await prisma$6.theme.update({
       where: { id: body.id },
       data: { nom_theme: body.nom_theme }
     });
   } else {
-    return await prisma$5.theme.create({
+    return await prisma$6.theme.create({
       data: { nom_theme: body.nom_theme }
     });
   }
@@ -5190,7 +5243,7 @@ const _id__delete = defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
   if (!id) throw createError({ statusCode: 400, statusMessage: "ID manquant" });
   try {
-    await prisma$5.ville.delete({
+    await prisma$6.ville.delete({
       where: { id }
     });
     return { success: true };
@@ -5205,7 +5258,7 @@ const _id__delete$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePrope
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const index_get = defineEventHandler(async (event) => {
-  return await prisma$5.ville.findMany({
+  return await prisma$6.ville.findMany({
     orderBy: { nom_ville: "asc" }
   });
 });
@@ -5220,7 +5273,7 @@ const index_post = defineEventHandler(async (event) => {
   if (!body.nom_ville) {
     throw createError({ statusCode: 400, statusMessage: "Nom de ville requis" });
   }
-  return await prisma$5.ville.create({
+  return await prisma$6.ville.create({
     data: {
       nom_ville: body.nom_ville
     }

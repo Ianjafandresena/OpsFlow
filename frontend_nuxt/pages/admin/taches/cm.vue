@@ -133,6 +133,7 @@
               <option>Démarche Administrative</option>
               <option>Mailing (Newsletter)</option>
               <option>Sponsorisation (Ads)</option>
+              <option>Autre</option>
             </select>
           </div>
           <div class="form-group">
@@ -302,6 +303,20 @@
           </div>
         </div>
 
+        <!-- Section spécifique : Autre -->
+        <div v-if="form.typeTache === 'Autre'" style="padding-top:0.5rem; border-top:1px solid var(--border-light);">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+            <div class="form-group">
+              <label class="form-label">Titre de la tâche</label>
+              <input type="text" v-model="form.titre" required class="form-input" placeholder="Titre de la tâche..." />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date butoir / réalisation</label>
+              <input type="datetime-local" v-model="form.date_limite" required class="form-input" />
+            </div>
+          </div>
+        </div>
+
         <!-- Champs Communs -->
         <div class="form-group" style="margin-top:0.5rem;">
           <label class="form-label">Description spécifique / Détails de la tâche</label>
@@ -387,7 +402,7 @@ const defaultForm = () => {
   
   return { 
     id:null, typeTache:'Publication', employeId:'', editionId:'', statutTacheId: defaultStatut, 
-    date_limite: getIsoTime(new Date()), date_demande: '',
+    titre: '', isAutre: false, date_limite: getIsoTime(new Date()), date_demande: '',
     plateformes: ['Facebook'], type_pub:'Poste', themePubId: '', themeSponsoId: '', action_publication: 'Programmer',
     sponsorisations: [{ themeId: '', budget: '' }],
     type_demarche:'', budget: null, audience:'', description:'', outil_mailing: 'Brevo (Sendinblue)'
@@ -453,9 +468,10 @@ const save = async () => {
     
     // Auto-generate title
     let genTitre = form.value.typeTache
-    if (form.value.typeTache === 'Publication') genTitre = `${form.value.plateforme} - ${form.value.type_pub}`
-    if (form.value.typeTache === 'Démarche Administrative') genTitre = form.value.type_demarche || 'Démarche'
-    if (form.value.typeTache === 'Sponsorisation (Ads)') genTitre = `Sponsorisation (${form.value.budget || 0}€)`
+    if (form.value.typeTache === 'Autre') genTitre = form.value.titre || 'Autre Tâche'
+    else if (form.value.typeTache === 'Publication') genTitre = `${form.value.plateforme} - ${form.value.type_pub}`
+    else if (form.value.typeTache === 'Démarche Administrative') genTitre = form.value.type_demarche || 'Démarche'
+    else if (form.value.typeTache === 'Sponsorisation (Ads)') genTitre = `Sponsorisation (${form.value.budget || 0}€)`
     
     // Nettoyer selon le typeTache
     if (body.typeTache === 'Publication') {
@@ -466,6 +482,8 @@ const save = async () => {
       body.date_resultat = new Date(body.date_limite).toISOString() 
     } else if (body.typeTache === 'Mailing (Newsletter)') {
       body.plateforme = null; body.type_pub = null; body.themePubId = null; body.type_demarche = null; body.budget = null; body.audience = null; body.date_demande = null; body.themeSponsoId = null;
+    } else if (body.typeTache === 'Autre') {
+      body.titre = genTitre;
     }
 
     body.date_limite = new Date(body.date_limite).toISOString()

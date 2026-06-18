@@ -181,6 +181,9 @@ model EntreeJournal {
   date        DateTime @db.Date
   heure       String   // e.g. "08:30"
   contenu     String   @db.Text
+  commentaire       String?  @db.Text
+  admin_commentaire String?  @db.Text
+  lien              String?
   
   journalId   String
   journal     Journal  @relation(fields: [journalId], references: [id], onDelete: Cascade)
