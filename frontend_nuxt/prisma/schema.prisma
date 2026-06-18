@@ -41,6 +41,9 @@ model Employe {
   role           Role          @relation(fields: [roleId], references: [id])
   taches         Tache[]
   editionsGerees EditionPage[] @relation("EditionPageToEmploye")
+  journals1      Journal[]     @relation("JournalEmploye1")
+  journals2      Journal[]     @relation("JournalEmploye2")
+  entreesJournal EntreeJournal[]
 }
 
 model Licence {
@@ -118,6 +121,7 @@ model Tache {
   themePub       Theme?       @relation("ThemePublication", fields: [themePubId], references: [id])
   themeSponso    Theme?       @relation("ThemeSponsorisation", fields: [themeSponsoId], references: [id])
   demandes       DemandeTache[]
+  entreesJournal EntreeJournal[]
 }
 
 model Execution {
@@ -156,4 +160,42 @@ enum TypeTache {
   DEV
   MAILING
   ADMINISTRATIVE
+}
+
+model Journal {
+  id          String   @id @default(uuid())
+  nom         String
+  createdAt   DateTime @default(now())
+
+  employe1Id  String
+  employe1    Employe  @relation("JournalEmploye1", fields: [employe1Id], references: [id])
+
+  employe2Id  String?
+  employe2    Employe? @relation("JournalEmploye2", fields: [employe2Id], references: [id])
+
+  entrees     EntreeJournal[]
+}
+
+model EntreeJournal {
+  id          String   @id @default(uuid())
+  date        DateTime @db.Date
+  heure       String   // e.g. "08:30"
+  contenu     String   @db.Text
+  commentaire       String?  @db.Text
+  admin_commentaire String?  @db.Text
+  lien              String?
+  
+  journalId   String
+  journal     Journal  @relation(fields: [journalId], references: [id], onDelete: Cascade)
+
+  employeId   String
+  employe     Employe  @relation(fields: [employeId], references: [id], onDelete: Cascade)
+
+  tacheId     String?
+  tache       Tache?   @relation(fields: [tacheId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([journalId, employeId, date, heure])
 }

@@ -71,15 +71,75 @@ export default defineEventHandler(async (event) => {
     date_demande: body.date_demande ? new Date(body.date_demande) : null,
     date_resultat: body.date_resultat ? new Date(body.date_resultat) : null,
     outil_mailing: body.outil_mailing,
-    demandeur: body.demandeur
+    demandeur: body.demandeur,
+    lien_livrable: body.lien_livrable
   }
 
   if (body.id) {
     // Modification
-    return await prisma.tache.update({
+    const updatedTache = await prisma.tache.update({
       where: { id: body.id },
-      data
+      data,
+      include: { statutTache: true }
     })
+
+    // Si la tâche est terminée, on l'ajoute automatiquement au journal du jour s'il existe
+    if (updatedTache.statutTache?.nom?.toLowerCase() === 'terminé' || updatedTache.statutTache?.libelle?.toLowerCase() === 'terminé' || updatedTache.statutTache?.libelle?.toLowerCase() === 'terminée') {
+      try {
+        // Chercher le dernier journal actif de cet employé
+        const journal = await prisma.journal.findFirst({
+          where: {
+            OR: [
+              { employe1Id: body.employeId },
+              { employe2Id: body.employeId }
+            ]
+          },
+          orderBy: { createdAt: 'desc' }
+        })
+
+        if (journal) {
+          // Calculer l'heure actuelle arrondie à 30 min (ex: 14:30)
+          const now = new Date()
+          const minutes = now.getMinutes()
+          const roundedMinutes = minutes < 30 ? '00' : '30'
+          const heure = `${now.getHours().toString().padStart(2, '0')}:${roundedMinutes}`
+          
+          // Date du jour sans heure
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+
+          await prisma.entreeJournal.upsert({
+            where: {
+              journalId_employeId_date_heure: {
+                journalId: journal.id,
+                employeId: body.employeId,
+                date: today,
+                heure: heure
+              }
+            },
+            update: {
+              contenu: `Tâche terminée : ${updatedTache.titre}`,
+              tacheId: updatedTache.id,
+              lien: updatedTache.lien_livrable
+            },
+            create: {
+              journalId: journal.id,
+              employeId: body.employeId,
+              date: today,
+              heure: heure,
+              contenu: `Tâche terminée : ${updatedTache.titre}`,
+              tacheId: updatedTache.id,
+              lien: updatedTache.lien_livrable
+            }
+          })
+          console.log(`Entrée de journal automatique ajoutée pour la tâche ${updatedTache.id} à ${heure}`)
+        }
+      } catch (err) {
+        console.error("Erreur lors de l'ajout automatique au journal :", err)
+      }
+    }
+
+    return updatedTache
   } else {
     // Création
     console.log('--- CREATING TACHE ---')

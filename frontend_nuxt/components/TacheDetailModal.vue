@@ -58,6 +58,14 @@
                 <div class="detail-label">Créée le</div>
                 <div class="detail-value">{{ formatDate(tache.createdAt) }}</div>
               </div>
+              <div class="detail-field" v-if="tache?.lien_livrable" style="grid-column: 1 / -1;">
+                <div class="detail-label">Lien / Livrable</div>
+                <div class="detail-value">
+                  <a :href="tache.lien_livrable.startsWith('http') ? tache.lien_livrable : 'https://' + tache.lien_livrable" target="_blank" rel="noopener noreferrer" style="color:var(--accent-primary); text-decoration:underline; word-break:break-all; font-weight:600;">
+                    {{ tache.lien_livrable }}
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -227,13 +235,14 @@ const parsePlateforme = (val) => {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.45);
-  backdrop-filter: blur(4px);
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(8px);
   z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.5rem;
+  padding: 2rem;
+  box-sizing: border-box;
   animation: fadeIn 0.15s ease;
 }
 
@@ -245,10 +254,10 @@ const parsePlateforme = (val) => {
   border-radius: 12px;
   width: 100%;
   max-width: 640px;
-  max-height: 85vh;
+  max-height: calc(100vh - 4rem);
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   animation: slideUp 0.2s ease;
 }
 
