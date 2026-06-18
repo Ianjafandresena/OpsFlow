@@ -43,6 +43,8 @@ model Employe {
   editionsGerees EditionPage[] @relation("EditionPageToEmploye")
   journals1      Journal[]     @relation("JournalEmploye1")
   journals2      Journal[]     @relation("JournalEmploye2")
+  journals3      Journal[]     @relation("JournalEmploye3")
+  journals4      Journal[]     @relation("JournalEmploye4")
   entreesJournal EntreeJournal[]
 }
 
@@ -54,9 +56,11 @@ model Licence {
 }
 
 model Ville {
-  id        String        @id @default(uuid())
-  nom_ville String        @unique
-  editions  EditionPage[]
+  id                 String        @id @default(uuid())
+  nom_ville          String        @unique
+  statut             String?       @default("NEUTRE")
+  statut_commentaire String?       @db.Text
+  editions           EditionPage[]
 }
 
 model EditionPage {
@@ -173,6 +177,12 @@ model Journal {
   employe2Id  String?
   employe2    Employe? @relation("JournalEmploye2", fields: [employe2Id], references: [id])
 
+  employe3Id  String?
+  employe3    Employe? @relation("JournalEmploye3", fields: [employe3Id], references: [id])
+
+  employe4Id  String?
+  employe4    Employe? @relation("JournalEmploye4", fields: [employe4Id], references: [id])
+
   entrees     EntreeJournal[]
 }
 
@@ -184,7 +194,9 @@ model EntreeJournal {
   commentaire       String?  @db.Text
   admin_commentaire String?  @db.Text
   lien              String?
-  
+  evaluation_type   String?
+  evaluation_montant Float?
+
   journalId   String
   journal     Journal  @relation(fields: [journalId], references: [id], onDelete: Cascade)
 
