@@ -48,6 +48,14 @@ declare module "nitropack/types" {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/equipe/index.get').default>>>>
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/equipe/index.post').default>>>>
     }
+    '/api/journals/:id/entrees': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/journals/[id]/entrees.get').default>>>>
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/journals/[id]/entrees.post').default>>>>
+    }
+    '/api/journals': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/journals/index.get').default>>>>
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/journals/index.post').default>>>>
+    }
     '/api/licences/:id': {
       'delete': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/licences/[id].delete').default>>>>
     }

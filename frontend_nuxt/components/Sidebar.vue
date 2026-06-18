@@ -43,6 +43,14 @@
           </NuxtLink>
         </div>
 
+        <!-- Suivi d'Activité -->
+        <div>
+          <div class="nav-section-title">Suivi d'Activité</div>
+          <NuxtLink to="/admin/journal" class="nav-link" active-class="nav-link-active">
+            <BookOpenIcon :size="15" /> Journal de Bord
+          </NuxtLink>
+        </div>
+
         <!-- Gestion -->
         <div>
           <div class="nav-section-title">Gestion</div>
@@ -86,6 +94,9 @@
           </NuxtLink>
           <NuxtLink to="/employe/planning" class="nav-link" active-class="nav-link-active">
             <CalendarIcon :size="15" /> Mon Planning
+          </NuxtLink>
+          <NuxtLink to="/employe/journal" class="nav-link" active-class="nav-link-active">
+            <BookOpenIcon :size="15" /> Mon Journal
           </NuxtLink>
         </div>
 
@@ -145,7 +156,8 @@ import {
   BarChart2 as BarChart2Icon,
   Shield as ShieldIcon,
   Moon as MoonIcon,
-  Sun as SunIcon
+  Sun as SunIcon,
+  BookOpen as BookOpenIcon
 } from 'lucide-vue-next'
 
 const props = defineProps({
