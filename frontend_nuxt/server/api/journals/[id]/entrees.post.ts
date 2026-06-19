@@ -34,6 +34,8 @@ export default defineEventHandler(async (event) => {
             commentaire: entree.commentaire,
             admin_commentaire: entree.admin_commentaire !== undefined ? entree.admin_commentaire : undefined,
             lien: entree.lien,
+            recherches: entree.recherches !== undefined ? entree.recherches : undefined,
+            heure_affichage: entree.heure_affichage !== undefined ? entree.heure_affichage : undefined,
             evaluation_type: entree.evaluation_type !== undefined ? entree.evaluation_type : undefined,
             evaluation_montant: entree.evaluation_montant !== undefined ? entree.evaluation_montant : undefined
           },
@@ -46,6 +48,8 @@ export default defineEventHandler(async (event) => {
             commentaire: entree.commentaire,
             admin_commentaire: entree.admin_commentaire,
             lien: entree.lien,
+            recherches: entree.recherches,
+            heure_affichage: entree.heure_affichage,
             evaluation_type: entree.evaluation_type,
             evaluation_montant: entree.evaluation_montant
           }

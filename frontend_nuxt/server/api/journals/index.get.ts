@@ -9,7 +9,17 @@ export default defineEventHandler(async (event) => {
         employe1: { select: { id: true, nom: true, prenom: true } },
         employe2: { select: { id: true, nom: true, prenom: true } },
         employe3: { select: { id: true, nom: true, prenom: true } },
-        employe4: { select: { id: true, nom: true, prenom: true } }
+        employe4: { select: { id: true, nom: true, prenom: true } },
+        editions: {
+          include: {
+            edition: {
+              include: {
+                licence: { select: { id: true, sigle: true } },
+                ville: { select: { id: true, nom_ville: true } }
+              }
+            }
+          }
+        }
       },
       orderBy: { createdAt: 'desc' }
     })

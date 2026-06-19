@@ -35,6 +35,9 @@ export default defineEventHandler(async (event) => {
       include: {
         tache: {
           select: { id: true, titre: true, lien_livrable: true }
+        },
+        commentaires: {
+          orderBy: { createdAt: 'asc' }
         }
       }
     })

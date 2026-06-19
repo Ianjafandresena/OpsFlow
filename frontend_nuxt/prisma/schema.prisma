@@ -74,6 +74,7 @@ model EditionPage {
   ville      Ville     @relation(fields: [villeId], references: [id])
   taches     Tache[]
   employes   Employe[] @relation("EditionPageToEmploye")
+  journals   JournalEdition[]
 
   @@unique([licenceId, villeId])
 }
@@ -184,6 +185,7 @@ model Journal {
   employe4    Employe? @relation("JournalEmploye4", fields: [employe4Id], references: [id])
 
   entrees     EntreeJournal[]
+  editions    JournalEdition[]
 }
 
 model EntreeJournal {
@@ -194,6 +196,8 @@ model EntreeJournal {
   commentaire       String?  @db.Text
   admin_commentaire String?  @db.Text
   lien              String?
+  recherches        String?  @db.Text
+  heure_affichage   String?
   evaluation_type   String?
   evaluation_montant Float?
 
@@ -206,8 +210,29 @@ model EntreeJournal {
   tacheId     String?
   tache       Tache?   @relation(fields: [tacheId], references: [id], onDelete: SetNull)
 
+  commentaires CommentaireJournal[]
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@unique([journalId, employeId, date, heure])
+}
+
+model CommentaireJournal {
+  id        String        @id @default(uuid())
+  contenu   String        @db.Text
+  isAdmin   Boolean       @default(false)
+  auteur    String
+  createdAt DateTime      @default(now())
+  entreeId  String
+  entree    EntreeJournal @relation(fields: [entreeId], references: [id], onDelete: Cascade)
+}
+
+model JournalEdition {
+  journalId String
+  editionId String
+  journal   Journal     @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  edition   EditionPage @relation(fields: [editionId], references: [id], onDelete: Cascade)
+
+  @@id([journalId, editionId])
 }
