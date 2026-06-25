@@ -37,7 +37,8 @@ export default defineEventHandler(async (event) => {
             recherches: entree.recherches !== undefined ? entree.recherches : undefined,
             heure_affichage: entree.heure_affichage !== undefined ? entree.heure_affichage : undefined,
             evaluation_type: entree.evaluation_type !== undefined ? entree.evaluation_type : undefined,
-            evaluation_montant: entree.evaluation_montant !== undefined ? entree.evaluation_montant : undefined
+            evaluation_montant: entree.evaluation_montant !== undefined ? entree.evaluation_montant : undefined,
+            editeurId: entree.editeurId !== undefined ? entree.editeurId : undefined
           },
           create: {
             journalId,
@@ -51,7 +52,8 @@ export default defineEventHandler(async (event) => {
             recherches: entree.recherches,
             heure_affichage: entree.heure_affichage,
             evaluation_type: entree.evaluation_type,
-            evaluation_montant: entree.evaluation_montant
+            evaluation_montant: entree.evaluation_montant,
+            editeurId: entree.editeurId || null
           }
         })
       })

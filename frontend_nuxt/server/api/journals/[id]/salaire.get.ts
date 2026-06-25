@@ -26,17 +26,23 @@ export default defineEventHandler(async (event) => {
     // Build date range for the month
     let startDate: Date
     let endDate: Date
+    let mois: number
+    let annee: number
     if (monthStr && /^\d{4}-\d{2}$/.test(monthStr)) {
       const [year, month] = monthStr.split('-').map(Number)
       startDate = new Date(year, month - 1, 1)
       endDate = new Date(year, month, 1)
+      mois = month
+      annee = year
     } else {
       const now = new Date()
       startDate = new Date(now.getFullYear(), now.getMonth(), 1)
       endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+      mois = now.getMonth() + 1
+      annee = now.getFullYear()
     }
 
-    // Aggregate primes and pénalités for employe1 of this journal
+    // Aggregate primes and pénalités for employe1 of this journal (legacy: EntreeJournal.evaluation_montant)
     const entries = await prisma.entreeJournal.findMany({
       where: {
         journalId,
@@ -52,6 +58,24 @@ export default defineEventHandler(async (event) => {
     for (const e of entries) {
       if (e.evaluation_type === 'PRIME') primes += e.evaluation_montant ?? 0
       if (e.evaluation_type === 'PENALITE') penalites += e.evaluation_montant ?? 0
+    }
+
+    // Also aggregate EvaluationSalaire for the same employee and month
+    const evalSalaires = await prisma.evaluationSalaire.findMany({
+      where: {
+        employeId: journal.employe1Id,
+        mois,
+        annee
+      },
+      select: { type: true, montant: true, statut: true }
+    })
+
+    for (const ev of evalSalaires) {
+      // Include only ACQUIS evaluations in salary calculation
+      if (ev.statut === 'ACQUIS') {
+        if (ev.type === 'PRIME') primes += ev.montant
+        if (ev.type === 'PENALITE') penalites += ev.montant
+      }
     }
 
     return {

@@ -20,7 +20,13 @@
       <div v-show="showSidebar" class="journal-list-panel">
         <div class="panel-header">
           <span class="panel-title">Journaux</span>
-          <span class="badge">{{ journals.length }}</span>
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <span class="badge">{{ journals.length }}</span>
+            <button class="icon-btn-view" @click="showSalaires=!showSalaires" :title="showSalaires?'Masquer les salaires':'Afficher les salaires'">
+              <EyeOffIcon v-if="showSalaires" :size="14" />
+              <EyeIcon v-else :size="14" />
+            </button>
+          </div>
         </div>
         <div v-if="loadingJournals" class="loading-state">
           <div class="spinner-sm"></div><span>Chargement...</span>
@@ -47,12 +53,13 @@
               </div>
               <div class="journal-item-members">{{ journalEmployes(j).map(e => `${e.prenom} ${e.nom}`).join(' & ') }}</div>
               <!-- Salary block (admin only) -->
-              <div v-if="salaireMap[j.id]" class="journal-salary-block">
+              <div v-if="showSalaires && salaireMap[j.id]" class="journal-salary-block">
                 <div class="salary-row"><span class="salary-label">Base</span><span class="salary-value">{{ formatAriary(salaireMap[j.id].base) }}</span></div>
                 <div class="salary-row salary-prime" v-if="salaireMap[j.id].primes > 0"><span class="salary-label">Primes</span><span class="salary-value">+{{ formatAriary(salaireMap[j.id].primes) }}</span></div>
                 <div class="salary-row salary-penalite" v-if="salaireMap[j.id].penalites > 0"><span class="salary-label">Pénalités</span><span class="salary-value">-{{ formatAriary(salaireMap[j.id].penalites) }}</span></div>
                 <div class="salary-row salary-final"><span class="salary-label">Final</span><span class="salary-value">{{ formatAriary(salaireMap[j.id].final) }}</span></div>
               </div>
+              <button class="btn btn-secondary btn-sm" style="margin-top:0.25rem; font-size:0.65rem; padding:0.15rem 0.5rem;" @click.stop="openSalaireDetailModal(j)">Détail</button>
             </div>
             <ChevronRightIcon :size="14" style="color:var(--text-muted); flex-shrink:0;" />
           </button>
@@ -90,6 +97,7 @@
               </div>
             </div>
             <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+              <button class="btn btn-secondary btn-sm" @click="openAccesModal" title="Paramètres de visibilité"><SettingsIcon :size="14" /> Paramètres</button>
               <div class="view-toggle">
                 <button class="btn btn-sm" :class="viewMode==='journalier'?'btn-primary':'btn-secondary'" @click="viewMode='journalier';loadEntries()" style="padding:0.2rem 0.5rem;">Jour</button>
                 <button class="btn btn-sm" :class="viewMode==='semaine'?'btn-primary':'btn-secondary'" @click="viewMode='semaine';loadEntries()" style="padding:0.2rem 0.5rem;">Semaine</button>
@@ -134,6 +142,7 @@
                             <span v-if="getEntry(emp.id, slot)?.tacheId" class="entry-auto-badge"><CheckIcon :size="10" /> Tâche</span>
                             <span v-if="getEntry(emp.id, slot)?.heure_affichage" class="entry-time-badge">{{ getEntry(emp.id, slot)?.heure_affichage }}</span>
                             <span class="entry-text">{{ getEntry(emp.id, slot)?.contenu }}</span>
+                            <span v-if="getEntry(emp.id, slot)?.editeur" class="entry-editor">✏️ {{ getEntry(emp.id, slot)?.editeur?.prenom }}</span>
                           </div>
                           <div class="entry-action-row">
                             <button class="icon-btn-view comment-icon-btn" :class="{ 'has-comments': msgCount(emp.id, slot) > 0 }" @click="openEntryModal(emp.id, slot)" :title="msgCount(emp.id,slot)+' message(s)'">
@@ -467,6 +476,158 @@
         </div>
       </div>
     </Teleport>
+
+    <!-- SALARY DETAIL MODAL -->
+    <Teleport to="body">
+      <div v-if="showSalaireDetail" class="modal-overlay">
+        <div class="modal-box modal-box-xl">
+          <div class="modal-header">
+            <h3 class="modal-title">Détail Salaire — {{ salaireDetailJournal?.nom }}</h3>
+            <button class="modal-close" @click="showSalaireDetail=false"><XIcon :size="16" /></button>
+          </div>
+          <div class="modal-body">
+            <!-- Sélecteur mois/année -->
+            <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+              <div class="form-group">
+                <label class="form-label">Mois</label>
+                <select v-model.number="detailMois" class="form-input" @change="loadSalaireDetail">
+                  <option v-for="m in 12" :key="m" :value="m">{{ moisLabel(m) }}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Année</label>
+                <input type="number" v-model.number="detailAnnee" class="form-input" style="width:90px;" @change="loadSalaireDetail" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Employé</label>
+                <select v-model="detailEmployeId" class="form-input" @change="loadSalaireDetail">
+                  <option v-for="emp in salaireDetailEmployes" :key="emp.id" :value="emp.id">{{ emp.prenom }} {{ emp.nom }}</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Formulaire ajout -->
+            <div style="background:var(--bg-surface-hover);border:1px solid var(--border-light);border-radius:8px;padding:1rem;display:flex;flex-direction:column;gap:0.75rem;">
+              <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Ajouter une prime / pénalité</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                <div class="form-group">
+                  <label class="form-label">Type</label>
+                  <select v-model="newEval.type" class="form-input">
+                    <option value="PRIME">Prime</option>
+                    <option value="PENALITE">Pénalité</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Montant (Ar)</label>
+                  <input type="number" v-model.number="newEval.montant" min="0" class="form-input" placeholder="50000" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Motif</label>
+                <input type="text" v-model="newEval.motif" class="form-input" placeholder="Ex: Bonus projet X" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Statut</label>
+                <select v-model="newEval.statut" class="form-input">
+                  <option value="ACQUIS">Acquis</option>
+                  <option value="A_VOIR">À voir</option>
+                </select>
+              </div>
+              <button class="btn btn-primary btn-sm" @click="addEvaluation" :disabled="!newEval.montant||!newEval.motif">Ajouter</button>
+            </div>
+
+            <!-- Tableau des évaluations -->
+            <div v-if="detailEvals.length === 0" style="text-align:center;padding:2rem;color:var(--text-muted);">Aucune prime ou pénalité ce mois-ci.</div>
+            <table v-else style="width:100%;border-collapse:collapse;font-size:0.8125rem;">
+              <thead>
+                <tr style="background:var(--bg-surface-hover);">
+                  <th style="padding:0.5rem;text-align:left;border-bottom:2px solid var(--border-light);">Type</th>
+                  <th style="padding:0.5rem;text-align:left;border-bottom:2px solid var(--border-light);">Motif</th>
+                  <th style="padding:0.5rem;text-align:right;border-bottom:2px solid var(--border-light);">Montant</th>
+                  <th style="padding:0.5rem;text-align:center;border-bottom:2px solid var(--border-light);">Statut</th>
+                  <th style="padding:0.5rem;border-bottom:2px solid var(--border-light);"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="ev in detailEvals" :key="ev.id" style="border-bottom:1px solid var(--border-light);">
+                  <td style="padding:0.5rem;">
+                    <span :style="ev.type==='PRIME'?'color:#059669;font-weight:600;':'color:#dc2626;font-weight:600;'">{{ ev.type==='PRIME'?'Prime':'Pénalité' }}</span>
+                  </td>
+                  <td style="padding:0.5rem;">{{ ev.motif }}</td>
+                  <td style="padding:0.5rem;text-align:right;font-weight:600;" :style="ev.type==='PRIME'?'color:#059669;':'color:#dc2626;'">
+                    {{ ev.type==='PRIME'?'+':'-' }}{{ formatAriary(ev.montant) }}
+                  </td>
+                  <td style="padding:0.5rem;text-align:center;">
+                    <span :style="ev.statut==='ACQUIS'?'background:#10b98120;color:#059669;':'background:#f59e0b20;color:#d97706;'" style="padding:0.15rem 0.5rem;border-radius:99px;font-size:0.7rem;font-weight:600;">{{ ev.statut==='ACQUIS'?'Acquis':'À voir' }}</span>
+                  </td>
+                  <td style="padding:0.5rem;text-align:center;">
+                    <button @click="deleteEvaluation(ev.id)" style="background:none;border:none;cursor:pointer;color:#ef4444;padding:0.2rem;">✕</button>
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr style="background:var(--bg-surface-hover);font-weight:700;">
+                  <td colspan="2" style="padding:0.75rem 0.5rem;">Total du mois</td>
+                  <td style="padding:0.75rem 0.5rem;text-align:right;font-size:0.9rem;" :style="detailTotal>=0?'color:#059669;':'color:#dc2626;'">
+                    {{ detailTotal >= 0 ? '+' : '' }}{{ formatAriary(detailTotal) }}
+                  </td>
+                  <td colspan="2"></td>
+                </tr>
+                <tr style="font-weight:700;font-size:0.9rem;">
+                  <td colspan="2" style="padding:0.5rem;">Salaire Final du mois</td>
+                  <td style="padding:0.5rem;text-align:right;color:var(--accent-primary);">{{ formatAriary(detailSalaireBase + detailTotal) }}</td>
+                  <td colspan="2"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" @click="showSalaireDetail=false">Fermer</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ACCES MODAL -->
+    <Teleport to="body">
+      <div v-if="showAccesModal" class="modal-overlay">
+        <div class="modal-box modal-box-lg">
+          <div class="modal-header">
+            <h3 class="modal-title">Visibilité et droits d'édition</h3>
+            <button class="modal-close" @click="showAccesModal=false"><XIcon :size="16" /></button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label class="form-label">Qui peut voir ce journal ?</label>
+              <div style="display:flex;gap:0.75rem;">
+                <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;">
+                  <input type="radio" v-model="accesMode" value="TOUS" /> Tout le monde
+                </label>
+                <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;">
+                  <input type="radio" v-model="accesMode" value="SELECTIONNES" /> Employés sélectionnés
+                </label>
+              </div>
+            </div>
+            <div v-if="accesMode === 'SELECTIONNES'" style="display:flex;flex-direction:column;gap:0.5rem;max-height:300px;overflow-y:auto;border:1px solid var(--border-light);border-radius:8px;padding:0.75rem;">
+              <div v-for="emp in accesEmployes" :key="emp.employeId" style="display:flex;align-items:center;gap:1rem;padding:0.4rem 0;border-bottom:1px solid var(--border-light);">
+                <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;flex:1;">
+                  <input type="checkbox" v-model="emp.peutVoir" @change="if(!emp.peutVoir) emp.peutEditer=false" />
+                  {{ emp.prenom }} {{ emp.nom }}
+                </label>
+                <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.8rem;" :style="!emp.peutVoir?'opacity:0.4;pointer-events:none;':''">
+                  <input type="checkbox" v-model="emp.peutEditer" :disabled="!emp.peutVoir" />
+                  Peut éditer
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" @click="showAccesModal=false">Annuler</button>
+            <button class="btn btn-primary" @click="saveAcces">Enregistrer</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -477,7 +638,8 @@ import {
   ChevronLeft as ChevronLeftIcon, X as XIcon, Check as CheckIcon,
   Link as LinkIcon, MessageSquare as MessageSquareIcon, Menu as MenuIcon,
   Edit as EditIcon, Save as SaveIcon, Trash as TrashIcon,
-  Send as SendIcon, Mail as MailIcon
+  Send as SendIcon, Mail as MailIcon,
+  Eye as EyeIcon, EyeOff as EyeOffIcon, Settings as SettingsIcon
 } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'admin' })
@@ -540,8 +702,8 @@ const showMailsModal = ref(false)
 const modalLinks = ref([])
 const modalMails = ref([])
 
-// --- Read tracking (clears badge after opening) ---
-const viewedEntries = ref({})
+// --- Read tracking (clears badge after opening) — persists across navigation ---
+const viewedEntries = useState('admin-journal-viewed', () => ({}))
 
 // --- Salary map (journalId -> { base, primes, penalites, final }) ---
 const salaireMap = ref({})
@@ -905,6 +1067,108 @@ const deleteJournal = async () => {
   } catch (e) { console.error(e); alert('Erreur lors de la suppression') }
   finally { deletingJournal.value = false }
 }
+
+// --- Salary visibility toggle ---
+const showSalaires = ref(true)
+
+// --- Salary Detail Modal ---
+const showSalaireDetail = ref(false)
+const salaireDetailJournal = ref(null)
+const salaireDetailEmployes = ref([])
+const detailMois = ref(new Date().getMonth() + 1)
+const detailAnnee = ref(new Date().getFullYear())
+const detailEmployeId = ref('')
+const detailEvals = ref([])
+const detailSalaireBase = ref(0)
+const newEval = ref({ type: 'PRIME', montant: null, motif: '', statut: 'ACQUIS' })
+
+const detailTotal = computed(() => {
+  return detailEvals.value.reduce((sum, ev) => {
+    return sum + (ev.type === 'PRIME' ? ev.montant : -ev.montant)
+  }, 0)
+})
+
+const moisLabel = (m) => {
+  return new Date(2000, m - 1, 1).toLocaleDateString('fr-FR', { month: 'long' })
+}
+
+const openSalaireDetailModal = async (j) => {
+  salaireDetailJournal.value = j
+  salaireDetailEmployes.value = journalEmployes(j)
+  detailEmployeId.value = j.employe1Id
+  detailMois.value = new Date().getMonth() + 1
+  detailAnnee.value = new Date().getFullYear()
+  showSalaireDetail.value = true
+  await loadSalaireDetail()
+}
+
+const loadSalaireDetail = async () => {
+  if (!detailEmployeId.value) return
+  try {
+    detailEvals.value = await $fetch(`/api/evaluations?employeId=${detailEmployeId.value}&mois=${detailMois.value}&annee=${detailAnnee.value}`)
+    // Obtenir le salaire de base
+    const emp = employes.value.find(e => e.id === detailEmployeId.value)
+    detailSalaireBase.value = emp?.salaire_base || 0
+  } catch (e) { console.error(e) }
+}
+
+const addEvaluation = async () => {
+  if (!newEval.value.montant || !newEval.value.motif) return
+  try {
+    await $fetch('/api/evaluations', {
+      method: 'POST',
+      body: {
+        employeId: detailEmployeId.value,
+        journalId: salaireDetailJournal.value?.id,
+        mois: detailMois.value,
+        annee: detailAnnee.value,
+        type: newEval.value.type,
+        montant: newEval.value.montant,
+        motif: newEval.value.motif,
+        statut: newEval.value.statut
+      }
+    })
+    newEval.value = { type: 'PRIME', montant: null, motif: '', statut: 'ACQUIS' }
+    await loadSalaireDetail()
+  } catch (e) { console.error(e) }
+}
+
+const deleteEvaluation = async (id) => {
+  try {
+    await $fetch(`/api/evaluations/${id}`, { method: 'DELETE' })
+    await loadSalaireDetail()
+  } catch (e) { console.error(e) }
+}
+
+// --- Journal Acces Modal ---
+const showAccesModal = ref(false)
+const accesMode = ref('TOUS')
+const accesEmployes = ref([]) // [{employeId, nom, prenom, peutVoir, peutEditer}]
+
+const openAccesModal = async () => {
+  if (!selectedJournal.value) return
+  try {
+    const data = await $fetch(`/api/journals/${selectedJournal.value.id}/acces`)
+    accesMode.value = data.visibiliteMode || 'TOUS'
+    // Construire la liste avec tous les employés
+    accesEmployes.value = employes.value.map(emp => {
+      const existing = data.acces?.find(a => a.employeId === emp.id)
+      return { employeId: emp.id, nom: emp.nom, prenom: emp.prenom, peutVoir: !!existing, peutEditer: existing?.peutEditer || false }
+    })
+    showAccesModal.value = true
+  } catch (e) { console.error(e) }
+}
+
+const saveAcces = async () => {
+  try {
+    const acces = accesEmployes.value.filter(a => a.peutVoir).map(a => ({ employeId: a.employeId, peutEditer: a.peutEditer }))
+    await $fetch(`/api/journals/${selectedJournal.value.id}/acces`, {
+      method: 'PUT',
+      body: { mode: accesMode.value, acces }
+    })
+    showAccesModal.value = false
+  } catch (e) { console.error(e) }
+}
 </script>
 
 <style scoped>
@@ -987,6 +1251,7 @@ const deleteJournal = async () => {
 .entry-text { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; font-size:0.8rem; }
 .entry-empty { color:var(--text-muted); font-size:0.75rem; padding:0.2rem 0; display:flex; align-items:center; gap:0.25rem; }
 
+.entry-editor { display:inline-flex; align-items:center; gap:0.15rem; font-size:0.65rem; color:var(--text-muted); margin-left:0.25rem; }
 .entry-action-row { display:flex; align-items:center; gap:0.15rem; flex-shrink:0; }
 .icon-btn-view { background:none; border:none; cursor:pointer; color:var(--text-muted); padding:0.15rem; border-radius:4px; display:flex; align-items:center; justify-content:center; transition:all 0.15s; position:relative; }
 .icon-btn-view:hover { color:var(--accent-primary); background:var(--accent-primary)10; }
