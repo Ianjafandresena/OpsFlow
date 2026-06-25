@@ -483,11 +483,10 @@ const evalOptions = [
 ]
 
 const timeSlots = []
-for (let h = 8; h <= 19; h++) {
+for (let h = 0; h <= 23; h++) {
   timeSlots.push(`${String(h).padStart(2,'0')}:00`)
   timeSlots.push(`${String(h).padStart(2,'0')}:30`)
 }
-timeSlots.push('20:00')
 
 // --- State ---
 const journals = ref([])
@@ -530,6 +529,9 @@ const showLinksModal = ref(false)
 const showMailsModal = ref(false)
 const modalLinks = ref([])
 const modalMails = ref([])
+
+// --- Read tracking (clears badge after opening) ---
+const viewedEntries = ref({})
 
 // --- Computed ---
 const weekDays = computed(() => {
@@ -600,6 +602,8 @@ const entryMails = (empId, slot, date = null) => {
 }
 
 const msgCount = (employeId, heure, date = null) => {
+  const key = `${employeId}-${heure}-${date||selectedDate.value}`
+  if (viewedEntries.value[key]) return 0
   const entry = getEntry(employeId, heure, date)
   if (!entry) return 0
   const legacy = (entry.commentaire ? 1 : 0) + (entry.admin_commentaire ? 1 : 0)
@@ -709,6 +713,8 @@ const openEntryModal = (empId, slot, dateStr = null) => {
   activeEmployeId.value = empId
   activeSlot.value = slot
   activeDate.value = dateStr
+  // Mark as read to clear the notification badge
+  viewedEntries.value[`${empId}-${slot}-${dateStr||selectedDate.value}`] = true
   const entry = getEntry(empId, slot, dateStr)
   modalForm.value = {
     contenu: entry?.contenu || '',
