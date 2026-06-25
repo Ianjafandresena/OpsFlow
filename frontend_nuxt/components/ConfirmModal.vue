@@ -38,7 +38,7 @@ const cancel = () => emit('cancel')
 
 <style scoped>
 .btn-danger {
-  background: var(--danger-color);
+  background: #ef4444;
   color: white;
   border: none;
 }

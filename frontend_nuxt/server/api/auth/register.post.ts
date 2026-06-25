@@ -54,7 +54,8 @@ export default defineEventHandler(async (event) => {
       mot_de_passe: hashPassword(motDePasse),
       is_active: false,
       roleId: role.id,
-      posteId: poste.id
+      posteId: poste.id,
+      salaire_base: 400000
     }
   })
 
