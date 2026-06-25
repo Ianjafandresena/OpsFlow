@@ -96,3 +96,42 @@ CREATE TABLE IF NOT EXISTS "NotificationEmploye" (
   CONSTRAINT "NotificationEmploye_employeId_fkey"
     FOREIGN KEY ("employeId") REFERENCES "Employe"("id") ON DELETE CASCADE
 );
+
+-- ============================================================
+-- Migration V3 : visibilité journal, droits édition, évaluations détaillées
+-- ============================================================
+
+ALTER TABLE "Journal"
+  ADD COLUMN IF NOT EXISTS "visibiliteMode" TEXT NOT NULL DEFAULT 'TOUS';
+
+CREATE TABLE IF NOT EXISTS "JournalAcces" (
+  "id"         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  "journalId"  TEXT NOT NULL,
+  "employeId"  TEXT NOT NULL,
+  "peutEditer" BOOLEAN NOT NULL DEFAULT false,
+  CONSTRAINT "JournalAcces_journalId_fkey" FOREIGN KEY ("journalId") REFERENCES "Journal"("id") ON DELETE CASCADE,
+  CONSTRAINT "JournalAcces_employeId_fkey" FOREIGN KEY ("employeId") REFERENCES "Employe"("id") ON DELETE CASCADE,
+  CONSTRAINT "JournalAcces_journalId_employeId_key" UNIQUE ("journalId", "employeId")
+);
+
+ALTER TABLE "EntreeJournal"
+  ADD COLUMN IF NOT EXISTS "editeurId" TEXT REFERENCES "Employe"("id") ON DELETE SET NULL;
+
+ALTER TABLE "EntreeJournal"
+  ADD COLUMN IF NOT EXISTS "reportee" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS "tacheTerminee" BOOLEAN NOT NULL DEFAULT false;
+
+CREATE TABLE IF NOT EXISTS "EvaluationSalaire" (
+  "id"        TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  "employeId" TEXT NOT NULL,
+  "journalId" TEXT,
+  "mois"      INTEGER NOT NULL,
+  "annee"     INTEGER NOT NULL,
+  "type"      TEXT NOT NULL,
+  "montant"   DOUBLE PRECISION NOT NULL,
+  "motif"     TEXT NOT NULL,
+  "statut"    TEXT NOT NULL DEFAULT 'ACQUIS',
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "EvaluationSalaire_employeId_fkey" FOREIGN KEY ("employeId") REFERENCES "Employe"("id") ON DELETE CASCADE,
+  CONSTRAINT "EvaluationSalaire_journalId_fkey" FOREIGN KEY ("journalId") REFERENCES "Journal"("id") ON DELETE SET NULL
+);

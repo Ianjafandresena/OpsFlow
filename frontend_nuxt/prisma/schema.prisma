@@ -50,6 +50,9 @@ model Employe {
   reglements     ReglementEmploye[]
   tachesLues     TacheLue[]
   notifications  NotificationEmploye[]
+  entreeJournalsEditees  EntreeJournal[]  @relation("EntreeJournalEditeur")
+  journalAcces           JournalAcces[]
+  evaluations            EvaluationSalaire[]
 }
 
 model Licence {
@@ -176,6 +179,7 @@ model Journal {
   id          String   @id @default(uuid())
   nom         String
   createdAt   DateTime @default(now())
+  visibiliteMode    String   @default("TOUS")
 
   employe1Id  String
   employe1    Employe  @relation("JournalEmploye1", fields: [employe1Id], references: [id])
@@ -191,6 +195,18 @@ model Journal {
 
   entrees     EntreeJournal[]
   editions    JournalEdition[]
+  acces       JournalAcces[]
+  evaluations EvaluationSalaire[]
+}
+
+model JournalAcces {
+  id         String   @id @default(uuid())
+  journalId  String
+  employeId  String
+  peutEditer Boolean  @default(false)
+  journal    Journal  @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  employe    Employe  @relation(fields: [employeId], references: [id], onDelete: Cascade)
+  @@unique([journalId, employeId])
 }
 
 model EntreeJournal {
@@ -205,6 +221,8 @@ model EntreeJournal {
   heure_affichage   String?
   evaluation_type   String?
   evaluation_montant Float?
+  reportee    Boolean  @default(false)
+  tacheTerminee Boolean @default(false)
 
   journalId   String
   journal     Journal  @relation(fields: [journalId], references: [id], onDelete: Cascade)
@@ -214,6 +232,9 @@ model EntreeJournal {
 
   tacheId     String?
   tache       Tache?   @relation(fields: [tacheId], references: [id], onDelete: SetNull)
+
+  editeurId   String?
+  editeur     Employe? @relation("EntreeJournalEditeur", fields: [editeurId], references: [id], onDelete: SetNull)
 
   commentaires CommentaireJournal[]
 
@@ -279,4 +300,19 @@ model NotificationEmploye {
   employeId String
   employe   Employe  @relation(fields: [employeId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+}
+
+model EvaluationSalaire {
+  id         String   @id @default(uuid())
+  employeId  String
+  journalId  String?
+  mois       Int
+  annee      Int
+  type       String   // PRIME | PENALITE
+  montant    Float
+  motif      String
+  statut     String   @default("ACQUIS") // ACQUIS | A_VOIR
+  createdAt  DateTime @default(now())
+  employe    Employe  @relation(fields: [employeId], references: [id], onDelete: Cascade)
+  journal    Journal? @relation(fields: [journalId], references: [id], onDelete: SetNull)
 }

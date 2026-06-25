@@ -4,6 +4,9 @@ const prisma = new PrismaClient()
 
 export default defineEventHandler(async (event) => {
   try {
+    const query = getQuery(event)
+    const employeId = query.employeId ? String(query.employeId) : null
+
     const journals = await prisma.journal.findMany({
       include: {
         employe1: { select: { id: true, nom: true, prenom: true, salaire_base: true } },
@@ -18,6 +21,11 @@ export default defineEventHandler(async (event) => {
                 ville: { select: { id: true, nom_ville: true } }
               }
             }
+          }
+        },
+        acces: {
+          include: {
+            employe: { select: { id: true, nom: true, prenom: true } }
           }
         }
       },
@@ -42,7 +50,22 @@ export default defineEventHandler(async (event) => {
       countMap[row.journalId] = Number(row.count)
     }
 
-    return journals.map(j => ({
+    let filteredJournals = journals
+
+    // If employeId provided, filter by visibility
+    if (employeId) {
+      filteredJournals = journals.filter(j => {
+        // Always visible if mode is TOUS
+        if (j.visibiliteMode === 'TOUS') return true
+        // Always visible if employee is directly assigned to journal
+        if (j.employe1Id === employeId || j.employe2Id === employeId ||
+            j.employe3Id === employeId || j.employe4Id === employeId) return true
+        // Mode SELECTIONNES: visible only if in acces list
+        return j.acces.some(a => a.employeId === employeId)
+      })
+    }
+
+    return filteredJournals.map(j => ({
       ...j,
       recentMessages: countMap[j.id] || 0
     }))

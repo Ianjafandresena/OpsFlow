@@ -48,7 +48,8 @@
             <input type="date" v-model="selectedDate" class="date-input" @change="loadEntries" />
             <button class="btn btn-secondary btn-sm" @click="nextDay"><ChevronRightIcon :size="14" /></button>
             <button class="btn btn-secondary btn-sm" @click="goToday">Aujourd'hui</button>
-            <button class="btn btn-primary btn-sm" :disabled="saving" @click="saveEntries">
+            <span v-if="!canEdit" style="font-size:0.75rem;color:var(--text-muted);font-style:italic;">(Lecture seule)</span>
+            <button v-else class="btn btn-primary btn-sm" :disabled="saving" @click="saveEntries">
               <span v-if="saving" class="spinner-xs"></span>
               <SaveIcon v-else :size="13" />
               {{ saving?'Enregistrement...':'Enregistrer' }}
@@ -80,20 +81,28 @@
                 <td v-for="emp in journalMembres" :key="emp.id" class="entry-cell" :class="emp.id===myEmployeId?'entry-cell-mine':'entry-cell-partner'">
                   <div class="cell-wrapper" v-if="localGrid[emp.id] && localGrid[emp.id][slot]!==undefined">
                     <!-- Auto task entry (read-only display) -->
-                    <div v-if="getEntryRaw(emp.id, slot)?.tacheId && !isEditing(emp.id, slot)" class="entry-content entry-auto">
+                    <div v-if="getEntryRaw(emp.id, slot)?.tacheId && !isEditing(emp.id, slot)"
+                      class="entry-content entry-auto"
+                      :class="{
+                        'entry-done': isTacheTerminee(getEntryRaw(emp.id, slot)),
+                        'entry-overdue': !isTacheTerminee(getEntryRaw(emp.id, slot)) && getEntryRaw(emp.id, slot)?.reportee
+                      }">
                       <div style="display:flex; justify-content:space-between; width:100%; align-items:flex-start;">
                         <div style="flex:1;">
                           <span class="entry-auto-badge"><CheckIcon :size="10" /> Tâche</span>
+                          <span v-if="isTacheTerminee(getEntryRaw(emp.id, slot))" class="entry-done-badge">✓ Terminée</span>
+                          <span v-else-if="getEntryRaw(emp.id, slot)?.reportee" class="entry-overdue-badge">⚠ Reportée</span>
                           <span v-if="getEntryRaw(emp.id, slot)?.heure_affichage" class="entry-time-chip">{{ getEntryRaw(emp.id, slot)?.heure_affichage }}</span>
                           {{ localGrid[emp.id][slot].contenu || getEntryRaw(emp.id, slot)?.contenu }}
                         </div>
-                        <div style="display:flex; gap:0.15rem; flex-shrink:0; align-items:center;">
+                        <div style="display:flex; gap:0.15rem; flex-shrink:0; align-items:center; flex-direction:column;">
                           <button v-if="hasAdminMsg(emp.id, slot)" class="icon-btn notif-btn" @click="openEntryModal(emp.id, slot)" title="Message de l'admin">
                             <MessageSquareIcon :size="12" /><span class="notif-badge">!</span>
                           </button>
                           <span v-if="getEntryRaw(emp.id, slot)?.evaluation_type && getEntryRaw(emp.id, slot)?.evaluation_type!=='NEUTRE'" :class="evalTagClass(getEntryRaw(emp.id, slot)?.evaluation_type)" class="eval-tag-emp">
                             {{ getEntryRaw(emp.id, slot)?.evaluation_type==='PRIME'?'Prime':'Pénal.' }}
                           </span>
+                          <button v-if="!isTacheTerminee(getEntryRaw(emp.id, slot)) && emp.id===myEmployeId" class="btn btn-sm" style="font-size:0.6rem;padding:0.1rem 0.35rem;background:#10b981;color:white;border:none;" @click="terminerTache(getEntryRaw(emp.id, slot).tacheId)">Déclarer terminée</button>
                           <button class="edit-btn" @click="startEditing(emp.id, slot)"><EditIcon :size="11" /></button>
                         </div>
                       </div>
@@ -394,8 +403,8 @@ const showMailsModal = ref(false)
 const modalLinks = ref([])
 const modalMails = ref([])
 
-// --- Read tracking (clears notification badge after opening) ---
-const viewedEntries = ref({})
+// --- Read tracking (clears notification badge after opening) — persists across navigation ---
+const viewedEntries = useState('employe-journal-viewed', () => ({}))
 
 // --- Computed ---
 const myEmployeId = computed(() => user.value?.id || null)
@@ -490,11 +499,8 @@ onMounted(async () => {
 const loadJournals = async () => {
   loadingJournals.value = true
   try {
-    const allJournals = await $fetch('/api/journals')
-    myJournals.value = allJournals.filter(j =>
-      j.employe1Id===myEmployeId.value || j.employe2Id===myEmployeId.value ||
-      j.employe3Id===myEmployeId.value || j.employe4Id===myEmployeId.value
-    )
+    const url = myEmployeId.value ? `/api/journals?employeId=${myEmployeId.value}` : '/api/journals'
+    myJournals.value = await $fetch(url)
     if (myJournals.value.length > 0) {
       await selectJournal(myJournals.value[0])
       weekEmpId.value = myEmployeId.value
@@ -550,7 +556,15 @@ const buildLocalGrid = () => {
   adminRemark.value = aR ? aR.contenu : ''
 }
 
-const selectJournal = async (j) => { selectedJournal.value = j; await loadEntries() }
+const selectJournal = async (j) => {
+  selectedJournal.value = j
+  // Déclencher le report automatique des tâches non terminées
+  try {
+    const today = new Date().toISOString().split('T')[0]
+    await $fetch(`/api/journals/${j.id}/carry-over?date=${today}`, { method: 'POST' })
+  } catch {}
+  await loadEntries()
+}
 const prevDay = () => { const d=new Date(selectedDate.value); d.setDate(d.getDate()-1); selectedDate.value=d.toISOString().split('T')[0]; loadEntries() }
 const nextDay = () => { const d=new Date(selectedDate.value); d.setDate(d.getDate()+1); selectedDate.value=d.toISOString().split('T')[0]; loadEntries() }
 const goToday = () => { selectedDate.value=today; loadEntries() }
@@ -608,6 +622,33 @@ const sendEmpMsg = async () => {
     newEmpMsg.value = ''
     nextTick(() => scrollChat())
   } catch (e) { console.error(e) }
+}
+
+// --- Lecture seule si pas de droit d'édition ---
+const canEdit = computed(() => {
+  if (!selectedJournal.value || !myEmployeId.value) return true
+  const j = selectedJournal.value
+  if (j.visibiliteMode !== 'SELECTIONNES') return true
+  // Vérifie si l'employé est assigné directement
+  if (j.employe1Id === myEmployeId.value || j.employe2Id === myEmployeId.value ||
+      j.employe3Id === myEmployeId.value || j.employe4Id === myEmployeId.value) return true
+  // Vérifie si l'employé a le droit d'éditer
+  const acces = j.acces?.find(a => a.employeId === myEmployeId.value)
+  return acces?.peutEditer === true
+})
+
+// --- Task completion ---
+const terminerTache = async (tacheId) => {
+  try {
+    await $fetch(`/api/taches/${tacheId}/terminer`, { method: 'POST' })
+    await loadEntries()
+  } catch (e) { console.error(e) }
+}
+
+const isTacheTerminee = (entry) => {
+  if (entry?.tacheTerminee) return true
+  const statut = entry?.tache?.statutTache
+  return statut?.libelle?.toLowerCase().includes('termin')
 }
 
 // --- Links / Mails modals ---
@@ -742,6 +783,10 @@ const saveEntries = async () => {
 
 .entry-content { display:flex; flex-direction:column; gap:0.2rem; font-size:0.8125rem; color:var(--text-primary); background:var(--bg-surface-hover); border:1px solid var(--border-light); border-radius:6px; padding:0.35rem 0.5rem; line-height:1.4; }
 .entry-auto { background:#10b98110; border-color:#10b98130; }
+.entry-done { background: #10b98115 !important; border-color: #10b98150 !important; }
+.entry-overdue { background: #ef444415 !important; border-color: #ef444450 !important; }
+.entry-done-badge { display:inline-flex; align-items:center; background: #10b981; color: white; font-size: 0.6rem; font-weight: 700; padding: 0.1rem 0.35rem; border-radius: 99px; margin-right:0.25rem; }
+.entry-overdue-badge { display:inline-flex; align-items:center; background: #ef4444; color: white; font-size: 0.6rem; font-weight: 700; padding: 0.1rem 0.35rem; border-radius: 99px; margin-right:0.25rem; }
 .entry-auto-badge { display:inline-flex; align-items:center; gap:0.2rem; background:#10b981; color:white; font-size:0.6rem; font-weight:700; padding:0.1rem 0.35rem; border-radius:99px; flex-shrink:0; margin-right:0.25rem; }
 .edit-btn { background:none; border:none; cursor:pointer; color:var(--text-muted); padding:0.1rem; border-radius:3px; display:flex; align-items:center; }
 .edit-btn:hover { color:var(--accent-primary); background:var(--accent-primary)10; }

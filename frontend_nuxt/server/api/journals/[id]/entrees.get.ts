@@ -34,8 +34,9 @@ export default defineEventHandler(async (event) => {
       },
       include: {
         tache: {
-          select: { id: true, titre: true, lien_livrable: true }
+          select: { id: true, titre: true, lien_livrable: true, statutTache: { select: { libelle: true } } }
         },
+        editeur: { select: { id: true, nom: true, prenom: true } },
         commentaires: {
           orderBy: { createdAt: 'asc' }
         }
