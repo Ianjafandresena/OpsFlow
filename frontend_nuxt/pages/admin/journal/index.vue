@@ -611,7 +611,7 @@
             <div v-if="accesMode === 'SELECTIONNES'" style="display:flex;flex-direction:column;gap:0.5rem;max-height:300px;overflow-y:auto;border:1px solid var(--border-light);border-radius:8px;padding:0.75rem;">
               <div v-for="emp in accesEmployes" :key="emp.employeId" style="display:flex;align-items:center;gap:1rem;padding:0.4rem 0;border-bottom:1px solid var(--border-light);">
                 <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;flex:1;">
-                  <input type="checkbox" v-model="emp.peutVoir" @change="if(!emp.peutVoir) emp.peutEditer=false" />
+                  <input type="checkbox" v-model="emp.peutVoir" @change="!emp.peutVoir && (emp.peutEditer = false)" />
                   {{ emp.prenom }} {{ emp.nom }}
                 </label>
                 <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.8rem;" :style="!emp.peutVoir?'opacity:0.4;pointer-events:none;':''">
