@@ -474,7 +474,18 @@ const formatTime = (ts) => {
 }
 
 // --- Load data ---
-onMounted(async () => { await loadJournals() })
+onMounted(async () => {
+  await loadJournals()
+  // Mark COMMENTAIRE notifications as read when visiting the journal page
+  if (user.value?.id) {
+    try {
+      await $fetch('/api/notifications/marquer-lu', {
+        method: 'POST',
+        body: { employeId: user.value.id, type: 'COMMENTAIRE' }
+      })
+    } catch {}
+  }
+})
 
 const loadJournals = async () => {
   loadingJournals.value = true
