@@ -20,6 +20,29 @@ export default defineEventHandler(async (event) => {
         auteur
       }
     })
+
+    // If admin sends a message, create a notification for the employee who owns this entry
+    if (isAdmin) {
+      try {
+        const entree = await prisma.entreeJournal.findUnique({
+          where: { id: entreeId },
+          select: { employeId: true }
+        })
+        if (entree?.employeId) {
+          await prisma.notificationEmploye.create({
+            data: {
+              type: 'COMMENTAIRE',
+              message: `L'administrateur a commenté votre journal : "${contenu.trim().substring(0, 80)}${contenu.trim().length > 80 ? '...' : ''}"`,
+              employeId: entree.employeId,
+              refId: journalId
+            }
+          })
+        }
+      } catch (notifErr) {
+        console.error('Erreur création notification commentaire:', notifErr)
+      }
+    }
+
     return message
   } catch (error) {
     console.error('Erreur POST /journals/:id/messages:', error)

@@ -35,6 +35,7 @@ model Employe {
   email          String        @unique
   mot_de_passe   String?
   is_active      Boolean       @default(false)
+  salaire_base   Float?
   posteId        String
   roleId         String
   poste          Poste         @relation(fields: [posteId], references: [id])
@@ -46,6 +47,9 @@ model Employe {
   journals3      Journal[]     @relation("JournalEmploye3")
   journals4      Journal[]     @relation("JournalEmploye4")
   entreesJournal EntreeJournal[]
+  reglements     ReglementEmploye[]
+  tachesLues     TacheLue[]
+  notifications  NotificationEmploye[]
 }
 
 model Licence {
@@ -127,6 +131,7 @@ model Tache {
   themeSponso    Theme?       @relation("ThemeSponsorisation", fields: [themeSponsoId], references: [id])
   demandes       DemandeTache[]
   entreesJournal EntreeJournal[]
+  tachesLues     TacheLue[]
 }
 
 model Execution {
@@ -235,4 +240,43 @@ model JournalEdition {
   edition   EditionPage @relation(fields: [editionId], references: [id], onDelete: Cascade)
 
   @@id([journalId, editionId])
+}
+
+model Reglement {
+  id        String             @id @default(uuid())
+  titre     String
+  contenu   String             @db.Text
+  createdAt DateTime           @default(now())
+  employes  ReglementEmploye[]
+}
+
+model ReglementEmploye {
+  reglementId String
+  employeId   String
+  reglement   Reglement @relation(fields: [reglementId], references: [id], onDelete: Cascade)
+  employe     Employe   @relation(fields: [employeId], references: [id], onDelete: Cascade)
+
+  @@id([reglementId, employeId])
+}
+
+model TacheLue {
+  id        String   @id @default(uuid())
+  tacheId   String
+  employeId String
+  luAt      DateTime @default(now())
+  tache     Tache    @relation(fields: [tacheId], references: [id], onDelete: Cascade)
+  employe   Employe  @relation(fields: [employeId], references: [id], onDelete: Cascade)
+
+  @@unique([tacheId, employeId])
+}
+
+model NotificationEmploye {
+  id        String   @id @default(uuid())
+  type      String   // NOUVELLE_TACHE | COMMENTAIRE | REGLEMENT
+  message   String
+  lue       Boolean  @default(false)
+  refId     String?
+  employeId String
+  employe   Employe  @relation(fields: [employeId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 }

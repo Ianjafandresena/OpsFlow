@@ -60,6 +60,9 @@
           <NuxtLink to="/admin/affectations" class="nav-link" active-class="nav-link-active">
             <LinkIcon :size="15" /> Affectations
           </NuxtLink>
+          <NuxtLink to="/admin/reglement" class="nav-link" active-class="nav-link-active">
+            <ScrollTextIcon :size="15" /> Règlements
+          </NuxtLink>
           <NuxtLink to="/admin/roles" class="nav-link" active-class="nav-link-active">
             <ShieldIcon :size="15" /> Comptes & Rôles
             <span v-if="pendingCount > 0" class="nav-notif-badge">{{ pendingCount }}</span>
@@ -89,14 +92,24 @@
 
         <div>
           <div class="nav-section-title">Mon Activité</div>
-          <NuxtLink to="/employe/taches" class="nav-link" active-class="nav-link-active">
+          <NuxtLink to="/employe/taches" class="nav-link" active-class="nav-link-active" @click="clearNotifType('NOUVELLE_TACHE')">
             <ListTodoIcon :size="15" /> Mes Tâches
+            <span v-if="notifTaches > 0" class="nav-notif-badge">{{ notifTaches }}</span>
           </NuxtLink>
           <NuxtLink to="/employe/planning" class="nav-link" active-class="nav-link-active">
             <CalendarIcon :size="15" /> Mon Planning
           </NuxtLink>
-          <NuxtLink to="/employe/journal" class="nav-link" active-class="nav-link-active">
+          <NuxtLink to="/employe/journal" class="nav-link" active-class="nav-link-active" @click="clearNotifType('COMMENTAIRE')">
             <BookOpenIcon :size="15" /> Mon Journal
+            <span v-if="notifJournal > 0" class="nav-notif-badge">{{ notifJournal }}</span>
+          </NuxtLink>
+        </div>
+
+        <div>
+          <div class="nav-section-title">Informations</div>
+          <NuxtLink to="/employe/reglement" class="nav-link" active-class="nav-link-active" @click="clearNotifType('REGLEMENT')">
+            <ScrollTextIcon :size="15" /> Règlements
+            <span v-if="notifReglement > 0" class="nav-notif-badge">{{ notifReglement }}</span>
           </NuxtLink>
         </div>
 
@@ -157,7 +170,8 @@ import {
   Shield as ShieldIcon,
   Moon as MoonIcon,
   Sun as SunIcon,
-  BookOpen as BookOpenIcon
+  BookOpen as BookOpenIcon,
+  ScrollText as ScrollTextIcon
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -169,6 +183,13 @@ const { isDark, toggleTheme } = useTheme()
 
 // Pending account count for admin badge
 const pendingCount = ref(0)
+
+// Employee notification counts by type
+const notifications = ref([])
+const notifTaches = computed(() => notifications.value.filter(n => n.type === 'NOUVELLE_TACHE').length)
+const notifJournal = computed(() => notifications.value.filter(n => n.type === 'COMMENTAIRE').length)
+const notifReglement = computed(() => notifications.value.filter(n => n.type === 'REGLEMENT').length)
+
 onMounted(async () => {
   if (props.role === 'admin') {
     try {
@@ -176,7 +197,27 @@ onMounted(async () => {
       pendingCount.value = res?.length || 0
     } catch {}
   }
+
+  if (props.role === 'employe' && user.value?.id) {
+    try {
+      const res = await $fetch('/api/notifications', { query: { employeId: user.value.id } })
+      notifications.value = res || []
+    } catch {}
+  }
 })
+
+const clearNotifType = async (type) => {
+  if (!user.value?.id) return
+  const before = notifications.value.filter(n => n.type === type).length
+  if (before === 0) return
+  notifications.value = notifications.value.filter(n => n.type !== type)
+  try {
+    await $fetch('/api/notifications/marquer-lu', {
+      method: 'POST',
+      body: { employeId: user.value.id, type }
+    })
+  } catch {}
+}
 
 const initials = computed(() => {
   const u = user.value
