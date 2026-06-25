@@ -352,11 +352,10 @@ import {
 definePageMeta({ layout: 'employe' })
 
 const timeSlots = []
-for (let h = 8; h <= 19; h++) {
+for (let h = 0; h <= 23; h++) {
   timeSlots.push(`${String(h).padStart(2,'0')}:00`)
   timeSlots.push(`${String(h).padStart(2,'0')}:30`)
 }
-timeSlots.push('20:00')
 
 const { user } = useAuth()
 
@@ -394,6 +393,9 @@ const showLinksModal = ref(false)
 const showMailsModal = ref(false)
 const modalLinks = ref([])
 const modalMails = ref([])
+
+// --- Read tracking (clears notification badge after opening) ---
+const viewedEntries = ref({})
 
 // --- Computed ---
 const myEmployeId = computed(() => user.value?.id || null)
@@ -458,6 +460,8 @@ const evalTagClass = (type) => {
 const splitLines = (str) => (str||'').split(/[\s\n]+/).map(s=>s.trim()).filter(Boolean)
 
 const hasAdminMsg = (empId, slot, dateStr=null) => {
+  const key = `${empId}-${slot}-${dateStr||selectedDate.value}`
+  if (viewedEntries.value[key]) return false
   const e = getEntryRaw(empId, slot, dateStr)
   if (!e) return false
   return !!(e.admin_commentaire || (e.commentaires && e.commentaires.some(m=>m.isAdmin)))
@@ -545,6 +549,8 @@ const openEntryModal = (empId, slot, date=null) => {
   activeEmployeId.value = empId
   activeSlot.value = slot
   activeDate.value = date
+  // Mark as read to clear the notification badge
+  viewedEntries.value[`${empId}-${slot}-${date||selectedDate.value}`] = true
   const key = viewMode.value==='journalier' ? empId : date
   const cell = localGrid.value[key]?.[slot]
   modalGridCell.value = { contenu: cell?.contenu||'', commentaire: cell?.commentaire||'', lien: cell?.lien||'', recherches: cell?.recherches||'', heure_affichage: cell?.heure_affichage||'' }
