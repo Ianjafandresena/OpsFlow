@@ -43,7 +43,10 @@
         <tbody>
           <tr v-for="task in filteredTasks" :key="task.id">
             <td>
-              <div style="font-weight:600;">{{ task.titre }}</div>
+              <div style="display:flex; align-items:center; gap:0.5rem;">
+                <span style="font-weight:600;">{{ task.titre }}</span>
+                <span v-if="tachesLues.has(task.id)" class="lu-badge">Lu</span>
+              </div>
               <div style="color:var(--text-secondary); font-size:0.75rem; max-width:300px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ task.description }}</div>
             </td>
             <td v-if="userDept !== 'Audiovisuel'" style="color:var(--text-secondary);">{{ task.edition?.licence?.sigle }} - {{ task.edition?.ville?.nom_ville }}</td>
@@ -415,7 +418,20 @@ const activeDropdownId = ref(null)
 const isDemandeModif = ref(false)
 const detailModal = ref(false)
 const detailTache = ref(null)
-const viewDetail = (t) => { detailTache.value = t; detailModal.value = true; activeDropdownId.value = null }
+const tachesLues = ref(new Set())
+
+const viewDetail = async (t) => {
+  detailTache.value = t
+  detailModal.value = true
+  activeDropdownId.value = null
+  // Mark task as read
+  if (loggedEmployeId.value && !tachesLues.value.has(t.id)) {
+    tachesLues.value.add(t.id)
+    try {
+      await $fetch(`/api/taches/${t.id}/lu`, { method: 'POST', body: { employeId: loggedEmployeId.value } })
+    } catch {}
+  }
+}
 
 const motifModal = ref({
   isOpen: false,
@@ -442,6 +458,20 @@ const handleOutsideClick = () => {
 onMounted(async () => {
   window.addEventListener('click', handleOutsideClick)
   await refreshTaches()
+  // Load already-read tasks for the current employee
+  if (loggedEmployeId.value) {
+    try {
+      const lues = await $fetch('/api/taches/lues', { query: { employeId: loggedEmployeId.value } })
+      if (Array.isArray(lues)) lues.forEach(id => tachesLues.value.add(id))
+    } catch {}
+    // Mark NOUVELLE_TACHE notifications as read when visiting the page
+    try {
+      await $fetch('/api/notifications/marquer-lu', {
+        method: 'POST',
+        body: { employeId: loggedEmployeId.value, type: 'NOUVELLE_TACHE' }
+      })
+    } catch {}
+  }
 })
 
 onUnmounted(() => {
@@ -762,3 +792,18 @@ const submitDemande = async () => {
   await refreshTaches()
 }
 </script>
+
+<style scoped>
+.lu-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #10b98115;
+  color: #059669;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 99px;
+  border: 1px solid #10b98130;
+  flex-shrink: 0;
+}
+</style>

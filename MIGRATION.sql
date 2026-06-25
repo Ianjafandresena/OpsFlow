@@ -43,3 +43,56 @@ CREATE TABLE IF NOT EXISTS "JournalEdition" (
   CONSTRAINT "JournalEdition_editionId_fkey"
     FOREIGN KEY ("editionId") REFERENCES "EditionPage"("id") ON DELETE CASCADE
 );
+
+-- ============================================================
+-- Migration V2 : salaire_base, règlements, tache lue, notifications
+-- ============================================================
+
+-- 7. Salaire de base pour Employe
+ALTER TABLE "Employe"
+  ADD COLUMN IF NOT EXISTS "salaire_base" DOUBLE PRECISION;
+
+-- 8. Table Reglement
+CREATE TABLE IF NOT EXISTS "Reglement" (
+  "id"        TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  "titre"     TEXT NOT NULL,
+  "contenu"   TEXT NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 9. Table ReglementEmploye (pivot)
+CREATE TABLE IF NOT EXISTS "ReglementEmploye" (
+  "reglementId" TEXT NOT NULL,
+  "employeId"   TEXT NOT NULL,
+  CONSTRAINT "ReglementEmploye_pkey" PRIMARY KEY ("reglementId", "employeId"),
+  CONSTRAINT "ReglementEmploye_reglementId_fkey"
+    FOREIGN KEY ("reglementId") REFERENCES "Reglement"("id") ON DELETE CASCADE,
+  CONSTRAINT "ReglementEmploye_employeId_fkey"
+    FOREIGN KEY ("employeId") REFERENCES "Employe"("id") ON DELETE CASCADE
+);
+
+-- 10. Table TacheLue
+CREATE TABLE IF NOT EXISTS "TacheLue" (
+  "id"        TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  "tacheId"   TEXT NOT NULL,
+  "employeId" TEXT NOT NULL,
+  "luAt"      TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "TacheLue_tacheId_fkey"
+    FOREIGN KEY ("tacheId") REFERENCES "Tache"("id") ON DELETE CASCADE,
+  CONSTRAINT "TacheLue_employeId_fkey"
+    FOREIGN KEY ("employeId") REFERENCES "Employe"("id") ON DELETE CASCADE,
+  CONSTRAINT "TacheLue_tacheId_employeId_key" UNIQUE ("tacheId", "employeId")
+);
+
+-- 11. Table NotificationEmploye
+CREATE TABLE IF NOT EXISTS "NotificationEmploye" (
+  "id"        TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  "type"      TEXT NOT NULL,
+  "message"   TEXT NOT NULL,
+  "lue"       BOOLEAN NOT NULL DEFAULT false,
+  "refId"     TEXT,
+  "employeId" TEXT NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "NotificationEmploye_employeId_fkey"
+    FOREIGN KEY ("employeId") REFERENCES "Employe"("id") ON DELETE CASCADE
+);

@@ -144,6 +144,22 @@ export default defineEventHandler(async (event) => {
     // Création
     console.log('--- CREATING TACHE ---')
     console.log(data)
-    return await prisma.tache.create({ data })
+    const newTache = await prisma.tache.create({ data })
+
+    // Créer une notification pour l'employé assigné
+    try {
+      await prisma.notificationEmploye.create({
+        data: {
+          type: 'NOUVELLE_TACHE',
+          message: `Nouvelle tâche assignée : "${newTache.titre}"`,
+          employeId: newTache.employeId,
+          refId: newTache.id
+        }
+      })
+    } catch (notifErr) {
+      console.error('Erreur création notification nouvelle tâche:', notifErr)
+    }
+
+    return newTache
   }
 })

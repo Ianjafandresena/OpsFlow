@@ -7,16 +7,21 @@ export default defineEventHandler(async (event) => {
   if (!id) throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
 
   const body = await readBody(event)
-  const { nom, prenom, email } = body
+  const { nom, prenom, email, salaire_base } = body
 
   if (!nom || !prenom || !email) {
     throw createError({ statusCode: 400, statusMessage: 'Nom, prénom et email sont obligatoires' })
   }
 
+  const updateData: any = { nom: nom.trim(), prenom: prenom.trim(), email: email.trim().toLowerCase() }
+  if (salaire_base !== undefined) {
+    updateData.salaire_base = (salaire_base === '' || salaire_base === null) ? null : parseFloat(String(salaire_base))
+  }
+
   try {
     const updated = await prisma.employe.update({
       where: { id },
-      data: { nom: nom.trim(), prenom: prenom.trim(), email: email.trim().toLowerCase() },
+      data: updateData,
       include: {
         poste: { include: { departement: true } },
         role: true,

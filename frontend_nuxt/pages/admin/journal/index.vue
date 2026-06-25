@@ -41,8 +41,18 @@
               <span v-if="journalEmployes(j).length > 1" class="journal-item-icon2">{{ initials(journalEmployes(j)[1]) }}</span>
             </div>
             <div style="flex:1; min-width:0;">
-              <div class="journal-item-name">{{ j.nom }}</div>
+              <div style="display:flex; align-items:center; gap:0.4rem;">
+                <div class="journal-item-name">{{ j.nom }}</div>
+                <span v-if="j.recentMessages > 0 && selectedJournal?.id !== j.id" class="journal-msg-badge">{{ j.recentMessages }}</span>
+              </div>
               <div class="journal-item-members">{{ journalEmployes(j).map(e => `${e.prenom} ${e.nom}`).join(' & ') }}</div>
+              <!-- Salary block (admin only) -->
+              <div v-if="salaireMap[j.id]" class="journal-salary-block">
+                <div class="salary-row"><span class="salary-label">Base</span><span class="salary-value">{{ formatAriary(salaireMap[j.id].base) }}</span></div>
+                <div class="salary-row salary-prime" v-if="salaireMap[j.id].primes > 0"><span class="salary-label">Primes</span><span class="salary-value">+{{ formatAriary(salaireMap[j.id].primes) }}</span></div>
+                <div class="salary-row salary-penalite" v-if="salaireMap[j.id].penalites > 0"><span class="salary-label">Pénalités</span><span class="salary-value">-{{ formatAriary(salaireMap[j.id].penalites) }}</span></div>
+                <div class="salary-row salary-final"><span class="salary-label">Final</span><span class="salary-value">{{ formatAriary(salaireMap[j.id].final) }}</span></div>
+              </div>
             </div>
             <ChevronRightIcon :size="14" style="color:var(--text-muted); flex-shrink:0;" />
           </button>
@@ -533,6 +543,9 @@ const modalMails = ref([])
 // --- Read tracking (clears badge after opening) ---
 const viewedEntries = ref({})
 
+// --- Salary map (journalId -> { base, primes, penalites, final }) ---
+const salaireMap = ref({})
+
 // --- Computed ---
 const weekDays = computed(() => {
   const date = new Date(selectedDate.value)
@@ -660,7 +673,16 @@ onMounted(async () => {
 
 const loadJournals = async () => {
   loadingJournals.value = true
-  try { journals.value = await $fetch('/api/journals') }
+  try {
+    journals.value = await $fetch('/api/journals')
+    // Load salary data for each journal (current month)
+    const month = new Date().toISOString().slice(0, 7)
+    for (const j of journals.value) {
+      try {
+        salaireMap.value[j.id] = await $fetch(`/api/journals/${j.id}/salaire?month=${month}`)
+      } catch {}
+    }
+  }
   catch (e) { console.error(e) }
   finally { loadingJournals.value = false }
 }
@@ -805,10 +827,20 @@ const openMailsModal = (empId, slot, date = null) => {
   showMailsModal.value = true
 }
 
+// --- Helpers ---
+const formatAriary = (amount) => {
+  if (amount === null || amount === undefined) return '—'
+  return new Intl.NumberFormat('fr-MG', { maximumFractionDigits: 0 }).format(amount) + ' Ar'
+}
+
 // --- Journal selection ---
 const selectJournal = async (j) => {
   selectedJournal.value = j
   weekEmpId.value = j.employe1Id
+  // Clear the message badge locally when selecting the journal
+  if (j.recentMessages > 0) {
+    j.recentMessages = 0
+  }
   if (window.innerWidth <= 900) showSidebar.value = false
   await loadEntries()
 }
@@ -894,8 +926,20 @@ const deleteJournal = async () => {
 .journal-item-icon { position:relative; width:36px; height:36px; flex-shrink:0; }
 .journal-item-icon > span { display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; background:var(--accent-primary); color:white; font-size:0.7rem; font-weight:700; }
 .journal-item-icon2 { position:absolute; bottom:-2px; right:-4px; width:22px !important; height:22px !important; font-size:0.6rem !important; background:#7c3aed !important; border:2px solid var(--bg-surface); border-radius:50%; display:flex !important; align-items:center; justify-content:center; color:white; }
-.journal-item-name { font-size:0.8125rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:160px; }
+.journal-item-name { font-size:0.8125rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px; }
 .journal-item-members { font-size:0.7rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:160px; }
+
+.journal-msg-badge { background:#3b82f6; color:white; font-size:0.6rem; font-weight:700; padding:0.1rem 0.38rem; border-radius:999px; line-height:1.4; flex-shrink:0; }
+
+.journal-salary-block { margin-top:0.35rem; background:var(--bg-surface-hover); border:1px solid var(--border-light); border-radius:6px; padding:0.35rem 0.5rem; display:flex; flex-direction:column; gap:0.1rem; }
+.salary-row { display:flex; justify-content:space-between; align-items:center; gap:0.5rem; }
+.salary-label { font-size:0.65rem; color:var(--text-muted); }
+.salary-value { font-size:0.65rem; font-weight:600; color:var(--text-primary); }
+.salary-prime .salary-value { color:#059669; }
+.salary-penalite .salary-value { color:#dc2626; }
+.salary-final { border-top:1px solid var(--border-light); margin-top:0.15rem; padding-top:0.15rem; }
+.salary-final .salary-label { font-weight:700; color:var(--text-primary); font-size:0.68rem; }
+.salary-final .salary-value { color:var(--accent-primary); font-size:0.7rem; }
 
 .journal-viewer { background:var(--bg-surface); border:1px solid var(--border-light); border-radius:12px; overflow:hidden; }
 .journal-empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:6rem 2rem; gap:0.75rem; text-align:center; }
