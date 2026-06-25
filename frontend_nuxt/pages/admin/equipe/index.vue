@@ -274,7 +274,7 @@ const remove = (id) => {
     try {
       await $fetch(`/api/equipe/${id}`, { method: 'DELETE' })
       await refreshEmployes()
-    } catch (e: any) {
+    } catch (e) {
       deleteError.value = e?.data?.statusMessage || 'Impossible de supprimer ce collaborateur.'
     }
   })
