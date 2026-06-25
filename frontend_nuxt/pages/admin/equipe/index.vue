@@ -101,13 +101,21 @@
             <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.niveau_acces }}</option>
           </select>
         </div>
+        <div class="form-group">
+          <label class="form-label">Salaire de base (Ar)</label>
+          <input type="number" v-model.number="form.salaire_base" min="0" step="1000" class="form-input" placeholder="400000" />
+        </div>
         <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.5rem;">
           <button type="button" class="btn btn-secondary" @click="modal=false">Annuler</button>
           <button type="submit" class="btn btn-primary">{{ editing ? 'Enregistrer' : 'Créer' }}</button>
         </div>
       </form>
     </Modal>
-    <ConfirmModal 
+    <div v-if="deleteError" style="position:fixed;bottom:1.5rem;right:1.5rem;background:#ef4444;color:white;padding:1rem 1.5rem;border-radius:8px;z-index:9999;max-width:400px;box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+      {{ deleteError }}
+      <button @click="deleteError=''" style="margin-left:1rem;background:transparent;border:none;color:white;cursor:pointer;font-size:1rem;">✕</button>
+    </div>
+    <ConfirmModal
       :isOpen="confirmModal.isOpen"
       :title="confirmModal.title"
       :message="confirmModal.message"
@@ -237,7 +245,7 @@ const changeJournalDate = (daysOffset) => {
   fetchJournal(journalModal.value.employeId, newDate)
 }
 
-const defaultForm = () => ({ id: null, nom: '', prenom: '', email: '', posteId: '', roleId: '' })
+const defaultForm = () => ({ id: null, nom: '', prenom: '', email: '', posteId: '', roleId: '', salaire_base: 400000 })
 const form = ref(defaultForm())
 
 const filteredTeam = computed(() => {
@@ -259,10 +267,16 @@ const save = async () => {
   modal.value = false
 }
 
-const remove = (id) => { 
+const deleteError = ref('')
+const remove = (id) => {
+  deleteError.value = ''
   requireConfirm('Supprimer le Collaborateur', 'Êtes-vous sûr de vouloir supprimer ce collaborateur ?', async () => {
-    await $fetch(`/api/equipe/${id}`, { method: 'DELETE' })
-    await refreshEmployes()
+    try {
+      await $fetch(`/api/equipe/${id}`, { method: 'DELETE' })
+      await refreshEmployes()
+    } catch (e: any) {
+      deleteError.value = e?.data?.statusMessage || 'Impossible de supprimer ce collaborateur.'
+    }
   })
 }
 </script>
