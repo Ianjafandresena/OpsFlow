@@ -199,6 +199,64 @@
         </div>
 
         <div v-if="saveSuccess" class="save-toast"><CheckCircleIcon :size="14" /> Journal enregistré avec succès !</div>
+
+        <!-- ===== SECTION MÉMOS ===== -->
+        <div class="memo-section-emp">
+          <div class="memo-section-header-emp" @click="showMemoSection = !showMemoSection">
+            <div style="display:flex; align-items:center; gap:0.5rem; font-weight:700; font-size:0.875rem;">
+              <StickyNoteIcon :size="15" style="color:var(--accent-primary);" />
+              Mémos & Liens
+              <span v-if="memos.length > 0" style="background:var(--accent-primary); color:white; font-size:0.65rem; font-weight:700; padding:0.1rem 0.4rem; border-radius:99px;">{{ memos.length }}</span>
+            </div>
+            <ChevronDownIcon v-if="!showMemoSection" :size="16" style="color:var(--text-muted);" />
+            <ChevronUpIcon v-else :size="16" style="color:var(--text-muted);" />
+          </div>
+
+          <div v-if="showMemoSection" style="padding:1rem; display:flex; flex-direction:column; gap:1rem;">
+            <!-- Filtre date -->
+            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; padding:0.6rem 0.75rem; background:var(--bg-surface-hover); border-radius:8px; border:1px solid var(--border-light); font-size:0.8rem;">
+              <span style="font-weight:600; color:var(--text-muted);">Période :</span>
+              <input type="date" v-model="memoFilterStart" class="date-input" style="font-size:0.78rem;" />
+              <span style="color:var(--text-muted);">→</span>
+              <input type="date" v-model="memoFilterEnd" class="date-input" style="font-size:0.78rem;" />
+              <button class="btn btn-secondary btn-sm" @click="loadMemos">Filtrer</button>
+              <button class="btn btn-secondary btn-sm" @click="memoFilterStart='';memoFilterEnd='';loadMemos()">Tout</button>
+            </div>
+
+            <!-- Formulaire ajout -->
+            <div style="background:var(--bg-surface-hover); border:1px solid var(--border-light); border-radius:8px; padding:0.875rem; display:flex; flex-direction:column; gap:0.6rem;">
+              <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted);">Nouveau mémo</div>
+              <textarea v-model="memoForm.contenu" class="form-input" rows="2" placeholder="Note, information..." style="resize:vertical; font-size:0.875rem;"></textarea>
+              <textarea v-model="memoForm.liens" class="form-input" rows="1" placeholder="Liens (un par ligne)" style="resize:vertical; font-size:0.8rem;"></textarea>
+              <div style="display:flex; justify-content:flex-end;">
+                <button class="btn btn-primary btn-sm" @click="addMemo" :disabled="!memoForm.contenu.trim()"><PlusIcon :size="13" /> Ajouter</button>
+              </div>
+            </div>
+
+            <!-- Liste mémos -->
+            <div v-if="loadingMemos" class="loading-state"><div class="spinner-sm"></div><span>Chargement...</span></div>
+            <div v-else-if="memos.length === 0" style="text-align:center; padding:1.5rem; color:var(--text-muted); font-size:0.8rem;">Aucun mémo.</div>
+            <div v-else style="display:flex; flex-direction:column; gap:0.6rem;">
+              <div v-for="memo in memos" :key="memo.id" style="background:var(--bg-surface); border:1px solid var(--border-light); border-radius:8px; padding:0.75rem;">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:0.4rem;">
+                  <div>
+                    <span style="font-size:0.78rem; font-weight:600;">{{ memo.auteur ? `${memo.auteur.prenom} ${memo.auteur.nom}` : '?' }}</span>
+                    <span style="font-size:0.7rem; color:var(--text-muted); margin-left:0.5rem;">{{ formatMemoDate(memo.createdAt) }}</span>
+                  </div>
+                  <button v-if="memo.auteur?.id === myEmployeId" @click="deleteMemoEmp(memo.id, memo.auteur.id)" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0.1rem;" title="Supprimer mon mémo">
+                    <TrashIcon :size="12" />
+                  </button>
+                </div>
+                <div style="font-size:0.8125rem; color:var(--text-primary); white-space:pre-wrap; line-height:1.5;">{{ memo.contenu }}</div>
+                <div v-if="memo.liens" style="margin-top:0.4rem; display:flex; flex-direction:column; gap:0.2rem;">
+                  <a v-for="(lien, i) in splitMemoLinks(memo.liens)" :key="i" :href="lien" target="_blank" style="color:var(--accent-primary); font-size:0.75rem; text-decoration:none; display:flex; align-items:center; gap:0.3rem;">
+                    <LinkIcon :size="10" /> {{ lien }}
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -355,7 +413,9 @@ import {
   BookOpen as BookOpenIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon,
   Save as SaveIcon, Check as CheckIcon, Edit as EditIcon, Link as LinkIcon,
   CheckCircle as CheckCircleIcon, MessageSquare as MessageSquareIcon,
-  Eye as EyeIcon, X as XIcon, Send as SendIcon, Mail as MailIcon
+  Eye as EyeIcon, X as XIcon, Send as SendIcon, Mail as MailIcon,
+  Plus as PlusIcon, Trash as TrashIcon,
+  StickyNote as StickyNoteIcon, ChevronDown as ChevronDownIcon, ChevronUp as ChevronUpIcon
 } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'employe' })
@@ -556,6 +616,54 @@ const buildLocalGrid = () => {
   adminRemark.value = aR ? aR.contenu : ''
 }
 
+// --- Mémos ---
+const memos = ref([])
+const loadingMemos = ref(false)
+const memoForm = ref({ contenu: '', liens: '' })
+const memoFilterStart = ref('')
+const memoFilterEnd = ref('')
+const showMemoSection = ref(false)
+
+const loadMemos = async () => {
+  if (!selectedJournal.value) return
+  loadingMemos.value = true
+  try {
+    let url = `/api/journals/${selectedJournal.value.id}/memos`
+    const params = []
+    if (memoFilterStart.value) params.push(`startDate=${memoFilterStart.value}`)
+    if (memoFilterEnd.value) params.push(`endDate=${memoFilterEnd.value}`)
+    if (params.length) url += '?' + params.join('&')
+    memos.value = await $fetch(url)
+  } catch (e) { console.error(e) }
+  finally { loadingMemos.value = false }
+}
+
+const addMemo = async () => {
+  if (!memoForm.value.contenu.trim() || !myEmployeId.value) return
+  try {
+    const newMemo = await $fetch(`/api/journals/${selectedJournal.value.id}/memos`, {
+      method: 'POST',
+      body: { contenu: memoForm.value.contenu, liens: memoForm.value.liens, auteurId: myEmployeId.value }
+    })
+    memos.value.unshift(newMemo)
+    memoForm.value = { contenu: '', liens: '' }
+  } catch (e) { console.error(e) }
+}
+
+const deleteMemoEmp = async (memoId, auteurId) => {
+  if (auteurId !== myEmployeId.value) return
+  try {
+    await $fetch(`/api/journals/${selectedJournal.value.id}/memos/${memoId}`, { method: 'DELETE' })
+    memos.value = memos.value.filter(m => m.id !== memoId)
+  } catch (e) { console.error(e) }
+}
+
+const splitMemoLinks = (liens) => (liens || '').split(/\n+/).map(s => s.trim()).filter(Boolean)
+const formatMemoDate = (ts) => {
+  if (!ts) return ''
+  return new Date(ts).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })
+}
+
 const selectJournal = async (j) => {
   selectedJournal.value = j
   // Déclencher le report automatique des tâches non terminées
@@ -564,6 +672,8 @@ const selectJournal = async (j) => {
     await $fetch(`/api/journals/${j.id}/carry-over?date=${today}`, { method: 'POST' })
   } catch {}
   await loadEntries()
+  showMemoSection.value = false
+  await loadMemos()
 }
 const prevDay = () => { const d=new Date(selectedDate.value); d.setDate(d.getDate()-1); selectedDate.value=d.toISOString().split('T')[0]; loadEntries() }
 const nextDay = () => { const d=new Date(selectedDate.value); d.setDate(d.getDate()+1); selectedDate.value=d.toISOString().split('T')[0]; loadEntries() }
@@ -847,6 +957,10 @@ const saveEntries = async () => {
 .link-item:last-child { border-bottom:none; }
 .link-item-url { display:flex; align-items:center; gap:0.5rem; color:var(--accent-primary); font-size:0.875rem; text-decoration:none; word-break:break-all; }
 .link-item-url:hover { text-decoration:underline; }
+
+.memo-section-emp { border-top:2px solid var(--border-light); margin-top:0; }
+.memo-section-header-emp { cursor:pointer; display:flex; align-items:center; justify-content:space-between; padding:0.75rem 1rem; background:var(--bg-surface-hover); transition:background 0.15s; }
+.memo-section-header-emp:hover { background:var(--border-light); }
 
 /* Mobile */
 @media (max-width: 768px) {

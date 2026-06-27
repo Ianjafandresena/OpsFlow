@@ -135,3 +135,18 @@ CREATE TABLE IF NOT EXISTS "EvaluationSalaire" (
   CONSTRAINT "EvaluationSalaire_employeId_fkey" FOREIGN KEY ("employeId") REFERENCES "Employe"("id") ON DELETE CASCADE,
   CONSTRAINT "EvaluationSalaire_journalId_fkey" FOREIGN KEY ("journalId") REFERENCES "Journal"("id") ON DELETE SET NULL
 );
+
+-- ============================================================
+-- Migration V4 : mémos avec liens
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS "Memo" (
+  "id"        TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  "contenu"   TEXT NOT NULL,
+  "liens"     TEXT,
+  "auteurId"  TEXT NOT NULL,
+  "journalId" TEXT NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Memo_auteurId_fkey" FOREIGN KEY ("auteurId") REFERENCES "Employe"("id") ON DELETE CASCADE,
+  CONSTRAINT "Memo_journalId_fkey" FOREIGN KEY ("journalId") REFERENCES "Journal"("id") ON DELETE CASCADE
+);

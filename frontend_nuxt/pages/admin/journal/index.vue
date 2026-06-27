@@ -28,6 +28,12 @@
             </button>
           </div>
         </div>
+        <div style="padding:0.5rem 0.75rem; border-bottom:1px solid var(--border-light);">
+          <div style="position:relative;">
+            <SearchIcon :size="13" style="position:absolute; left:0.5rem; top:50%; transform:translateY(-50%); color:var(--text-muted);" />
+            <input v-model="searchJournal" type="text" placeholder="Rechercher un journal..." class="form-input" style="padding-left:1.75rem; font-size:0.8rem; height:2rem;" />
+          </div>
+        </div>
         <div v-if="loadingJournals" class="loading-state">
           <div class="spinner-sm"></div><span>Chargement...</span>
         </div>
@@ -37,8 +43,11 @@
           <button class="btn btn-primary btn-sm" @click="openCreateModal"><PlusIcon :size="12" /> Créer le premier</button>
         </div>
         <div v-else class="journal-items">
+          <div v-if="filteredJournals.length === 0 && searchJournal" style="text-align:center; padding:1.5rem; color:var(--text-muted); font-size:0.8rem;">
+            Aucun journal trouvé pour "{{ searchJournal }}"
+          </div>
           <button
-            v-for="j in journals" :key="j.id"
+            v-for="j in filteredJournals" :key="j.id"
             class="journal-item" :class="{ 'journal-item-active': selectedJournal?.id === j.id }"
             @click="selectJournal(j)"
           >
@@ -235,6 +244,79 @@
                   <SaveIcon v-else :size="13" />
                   {{ savingAdmin ? 'Enregistrement...' : 'Enregistrer' }}
                 </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===== SECTION MÉMOS ===== -->
+          <div class="memo-section" v-if="selectedJournal">
+            <div class="memo-section-header" @click="showMemoSection = !showMemoSection" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; padding:0.75rem 1.25rem; background:var(--bg-surface-hover); border-top:2px solid var(--border-light);">
+              <div style="display:flex; align-items:center; gap:0.5rem; font-weight:700; font-size:0.875rem;">
+                <StickyNoteIcon :size="15" style="color:var(--accent-primary);" />
+                Mémos & Liens
+                <span v-if="memos.length > 0" style="background:var(--accent-primary); color:white; font-size:0.65rem; font-weight:700; padding:0.1rem 0.4rem; border-radius:99px;">{{ memos.length }}</span>
+              </div>
+              <ChevronDownIcon v-if="!showMemoSection" :size="16" style="color:var(--text-muted);" />
+              <ChevronUpIcon v-else :size="16" style="color:var(--text-muted);" />
+            </div>
+
+            <div v-if="showMemoSection" style="padding:1rem 1.25rem; display:flex; flex-direction:column; gap:1rem;">
+              <!-- Filtre date -->
+              <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; padding:0.75rem; background:var(--bg-surface-hover); border-radius:8px; border:1px solid var(--border-light);">
+                <span style="font-size:0.75rem; font-weight:600; color:var(--text-muted);">Filtrer par date :</span>
+                <input type="date" v-model="memoFilterStart" class="date-input" style="font-size:0.8rem;" />
+                <span style="color:var(--text-muted); font-size:0.8rem;">→</span>
+                <input type="date" v-model="memoFilterEnd" class="date-input" style="font-size:0.8rem;" />
+                <button class="btn btn-secondary btn-sm" @click="loadMemos">Filtrer</button>
+                <button class="btn btn-secondary btn-sm" @click="memoFilterStart='';memoFilterEnd='';loadMemos()">Tout</button>
+              </div>
+
+              <!-- Formulaire ajout mémo -->
+              <div style="background:var(--bg-surface-hover); border:1px solid var(--border-light); border-radius:8px; padding:1rem; display:flex; flex-direction:column; gap:0.75rem;">
+                <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted);">Ajouter un mémo</div>
+                <div class="form-group">
+                  <label class="form-label">Contenu</label>
+                  <textarea v-model="memoForm.contenu" class="form-input" rows="3" placeholder="Note, information importante..." style="resize:vertical;"></textarea>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Liens (un par ligne)</label>
+                  <textarea v-model="memoForm.liens" class="form-input" rows="2" placeholder="https://lien1.com&#10;https://lien2.com" style="resize:vertical; font-size:0.8rem;"></textarea>
+                </div>
+                <div style="display:flex; justify-content:flex-end;">
+                  <button class="btn btn-primary btn-sm" @click="addMemo" :disabled="!memoForm.contenu.trim() || !currentAdminId">
+                    <PlusIcon :size="13" /> Ajouter le mémo
+                  </button>
+                </div>
+              </div>
+
+              <!-- Liste mémos -->
+              <div v-if="loadingMemos" class="loading-state"><div class="spinner-sm"></div><span>Chargement...</span></div>
+              <div v-else-if="memos.length === 0" style="text-align:center; padding:2rem; color:var(--text-muted); font-size:0.875rem; background:var(--bg-surface-hover); border-radius:8px;">
+                Aucun mémo pour cette période.
+              </div>
+              <div v-else style="display:flex; flex-direction:column; gap:0.75rem;">
+                <div v-for="memo in memos" :key="memo.id" class="memo-card">
+                  <div class="memo-card-header">
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                      <div style="width:26px; height:26px; border-radius:50%; background:var(--accent-primary); color:white; font-size:0.6rem; font-weight:700; display:flex; align-items:center; justify-content:center;">
+                        {{ memo.auteur ? `${memo.auteur.prenom.charAt(0)}${memo.auteur.nom.charAt(0)}`.toUpperCase() : '?' }}
+                      </div>
+                      <div>
+                        <div style="font-size:0.8rem; font-weight:600;">{{ memo.auteur ? `${memo.auteur.prenom} ${memo.auteur.nom}` : 'Inconnu' }}</div>
+                        <div style="font-size:0.7rem; color:var(--text-muted);">{{ formatMemoDate(memo.createdAt) }}</div>
+                      </div>
+                    </div>
+                    <button @click="deleteMemo(memo.id)" style="background:none; border:none; cursor:pointer; color:var(--text-muted); padding:0.2rem;" title="Supprimer">
+                      <TrashIcon :size="13" />
+                    </button>
+                  </div>
+                  <div style="font-size:0.875rem; color:var(--text-primary); line-height:1.5; white-space:pre-wrap; margin-top:0.5rem;">{{ memo.contenu }}</div>
+                  <div v-if="memo.liens" style="margin-top:0.5rem; display:flex; flex-direction:column; gap:0.25rem;">
+                    <a v-for="(lien, i) in splitMemoLinks(memo.liens)" :key="i" :href="lien" target="_blank" class="memo-link">
+                      <LinkIcon :size="11" /> {{ lien }}
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -646,7 +728,9 @@ import {
   Link as LinkIcon, MessageSquare as MessageSquareIcon, Menu as MenuIcon,
   Edit as EditIcon, Save as SaveIcon, Trash as TrashIcon,
   Send as SendIcon, Mail as MailIcon,
-  Eye as EyeIcon, EyeOff as EyeOffIcon, Settings as SettingsIcon
+  Eye as EyeIcon, EyeOff as EyeOffIcon, Settings as SettingsIcon,
+  Search as SearchIcon,
+  StickyNote as StickyNoteIcon, ChevronDown as ChevronDownIcon, ChevronUp as ChevronUpIcon
 } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'admin' })
@@ -835,7 +919,10 @@ const autoFillName = () => {
 }
 
 // --- Load data ---
+const currentAdminId = ref(null)
+
 onMounted(async () => {
+  try { const me = await $fetch('/api/auth/me'); currentAdminId.value = me.id } catch {}
   await Promise.all([loadJournals(), loadEmployes(), loadEditions()])
   if (window.innerWidth <= 900 && !selectedJournal.value) showSidebar.value = true
 })
@@ -1010,6 +1097,8 @@ const selectJournal = async (j) => {
   visitedJournals.value = { ...visitedJournals.value, [j.id]: true }
   if (window.innerWidth <= 900) showSidebar.value = false
   await loadEntries()
+  showMemoSection.value = false
+  await loadMemos()
 }
 
 const prevDay = () => { const d=new Date(selectedDate.value); d.setDate(d.getDate()-1); selectedDate.value=d.toISOString().split('T')[0]; loadEntries() }
@@ -1071,6 +1160,71 @@ const deleteJournal = async () => {
     showSidebar.value = true
   } catch (e) { console.error(e); alert('Erreur lors de la suppression') }
   finally { deletingJournal.value = false }
+}
+
+// --- Search ---
+const searchJournal = ref('')
+
+const filteredJournals = computed(() => {
+  if (!searchJournal.value.trim()) return journals.value
+  const q = searchJournal.value.toLowerCase().trim()
+  return journals.value.filter(j => {
+    if (j.nom?.toLowerCase().includes(q)) return true
+    const emps = [j.employe1, j.employe2, j.employe3, j.employe4].filter(Boolean)
+    return emps.some(e => `${e.prenom} ${e.nom}`.toLowerCase().includes(q))
+  })
+})
+
+// --- Mémos ---
+const memos = ref([])
+const loadingMemos = ref(false)
+const memoForm = ref({ contenu: '', liens: '' })
+const memoFilterStart = ref('')
+const memoFilterEnd = ref('')
+const showMemoSection = ref(false)
+
+const loadMemos = async () => {
+  if (!selectedJournal.value) return
+  loadingMemos.value = true
+  try {
+    let url = `/api/journals/${selectedJournal.value.id}/memos`
+    const params = []
+    if (memoFilterStart.value) params.push(`startDate=${memoFilterStart.value}`)
+    if (memoFilterEnd.value) params.push(`endDate=${memoFilterEnd.value}`)
+    if (params.length) url += '?' + params.join('&')
+    memos.value = await $fetch(url)
+  } catch (e) { console.error(e) }
+  finally { loadingMemos.value = false }
+}
+
+const addMemo = async () => {
+  if (!memoForm.value.contenu.trim() || !currentAdminId.value) return
+  try {
+    const newMemo = await $fetch(`/api/journals/${selectedJournal.value.id}/memos`, {
+      method: 'POST',
+      body: {
+        contenu: memoForm.value.contenu,
+        liens: memoForm.value.liens,
+        auteurId: currentAdminId.value
+      }
+    })
+    memos.value.unshift(newMemo)
+    memoForm.value = { contenu: '', liens: '' }
+  } catch (e) { console.error(e) }
+}
+
+const deleteMemo = async (memoId) => {
+  try {
+    await $fetch(`/api/journals/${selectedJournal.value.id}/memos/${memoId}`, { method: 'DELETE' })
+    memos.value = memos.value.filter(m => m.id !== memoId)
+  } catch (e) { console.error(e) }
+}
+
+const splitMemoLinks = (liens) => (liens || '').split(/\n+/).map(s => s.trim()).filter(Boolean)
+
+const formatMemoDate = (ts) => {
+  if (!ts) return ''
+  return new Date(ts).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })
 }
 
 // --- Salary visibility toggle ---
@@ -1375,6 +1529,13 @@ const saveAcces = async () => {
 .spinner-xs { width:14px; height:14px; border-radius:50%; border:2px solid rgba(255,255,255,0.3); border-top-color:white; animation:spin 0.8s linear infinite; display:inline-block; }
 @keyframes spin { to { transform:rotate(360deg); } }
 .empty-list { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:3rem 1.5rem; text-align:center; color:var(--text-secondary); font-size:0.8125rem; gap:0.5rem; }
+
+.memo-section { border-top:2px solid var(--border-light); }
+.memo-section-header:hover { background:var(--bg-surface-hover) !important; }
+.memo-card { background:var(--bg-surface-hover); border:1px solid var(--border-light); border-radius:10px; padding:1rem; }
+.memo-card-header { display:flex; align-items:flex-start; justify-content:space-between; gap:0.5rem; }
+.memo-link { display:inline-flex; align-items:center; gap:0.35rem; color:var(--accent-primary); font-size:0.78rem; text-decoration:none; word-break:break-all; }
+.memo-link:hover { text-decoration:underline; }
 
 /* Mobile */
 @media (max-width: 900px) {
