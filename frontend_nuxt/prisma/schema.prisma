@@ -194,6 +194,9 @@ model Journal {
   employe4Id  String?
   employe4    Employe? @relation("JournalEmploye4", fields: [employe4Id], references: [id])
 
+  groupeId   String?
+  groupe     GroupeJournal? @relation(fields: [groupeId], references: [id], onDelete: SetNull)
+
   entrees     EntreeJournal[]
   editions    JournalEdition[]
   acces       JournalAcces[]
@@ -328,4 +331,11 @@ model Memo {
   createdAt DateTime @default(now())
   auteur    Employe  @relation("MemoAuteur", fields: [auteurId], references: [id], onDelete: Cascade)
   journal   Journal  @relation(fields: [journalId], references: [id], onDelete: Cascade)
+}
+
+model GroupeJournal {
+  id        String    @id @default(uuid())
+  nom       String
+  createdAt DateTime  @default(now())
+  journaux  Journal[]
 }

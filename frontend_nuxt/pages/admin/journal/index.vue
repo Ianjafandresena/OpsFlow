@@ -22,6 +22,9 @@
           <span class="panel-title">Journaux</span>
           <div style="display:flex; align-items:center; gap:0.5rem;">
             <span class="badge">{{ journals.length }}</span>
+            <button class="btn btn-secondary btn-sm" @click="openGroupe()" style="font-size:0.75rem;" title="Fusionner des journaux">
+              <LayersIcon :size="13" /> Fusionner
+            </button>
             <button class="icon-btn-view" @click="toggleAllSalaires" :title="anyHidden?'Tout afficher':'Tout masquer'">
               <EyeOffIcon v-if="!anyHidden" :size="14" />
               <EyeIcon v-else :size="14" />
@@ -46,6 +49,7 @@
           <div v-if="filteredJournals.length === 0 && searchJournal" style="text-align:center; padding:1.5rem; color:var(--text-muted); font-size:0.8rem;">
             Aucun journal trouvé pour "{{ searchJournal }}"
           </div>
+          <!-- Journaux sans groupe -->
           <button
             v-for="j in filteredJournals" :key="j.id"
             class="journal-item" :class="{ 'journal-item-active': selectedJournal?.id === j.id }"
@@ -78,6 +82,59 @@
             </div>
             <ChevronRightIcon :size="14" style="color:var(--text-muted); flex-shrink:0;" />
           </button>
+
+          <!-- Groupes (accordion) -->
+          <div v-for="g in groupesFiltres" :key="g.id" class="groupe-block">
+            <!-- En-tête du groupe -->
+            <div class="groupe-header" @click="toggleGroupe(g.id)">
+              <div style="display:flex;align-items:center;gap:0.5rem;flex:1;">
+                <LayersIcon :size="14" style="color:var(--accent-primary);" />
+                <span style="font-weight:700; font-size:0.8rem;">{{ g.nom }}</span>
+                <span style="font-size:0.7rem; color:var(--text-muted);">({{ g.journaux.length }})</span>
+              </div>
+              <button @click.stop="defusionner(g.id)" class="btn-defusionner" title="Défusionner">
+                <UnlinkIcon :size="12" />
+              </button>
+              <ChevronDownIcon v-if="!groupesOuverts[g.id]" :size="14" style="color:var(--text-muted);"/>
+              <ChevronUpIcon v-else :size="14" style="color:var(--text-muted);"/>
+            </div>
+            <!-- Journaux du groupe (accordion) -->
+            <div v-if="groupesOuverts[g.id]" class="groupe-items">
+              <button
+                v-for="j in g.journaux" :key="j.id"
+                class="journal-item groupe-journal-item"
+                :class="{ 'journal-item-active': selectedJournal?.id === j.id }"
+                @click="selectJournal(j)"
+              >
+                <div class="journal-item-icon">
+                  <span>{{ initials(j.employe1) }}</span>
+                  <span v-if="journalEmployes(j).length > 1" class="journal-item-icon2">{{ initials(journalEmployes(j)[1]) }}</span>
+                </div>
+                <div style="flex:1; min-width:0;">
+                  <div style="display:flex; align-items:center; gap:0.4rem;">
+                    <div class="journal-item-name">{{ j.nom }}</div>
+                    <span v-if="j.recentMessages > 0 && !visitedJournals[j.id]" class="journal-msg-badge">{{ j.recentMessages }}</span>
+                  </div>
+                  <div class="journal-item-members">{{ journalEmployes(j).map(e => `${e.prenom} ${e.nom}`).join(' & ') }}</div>
+                  <!-- Salary block (admin only) -->
+                  <div v-if="!hiddenSalaires[j.id] && salaireMap[j.id]" class="journal-salary-block">
+                    <div class="salary-row"><span class="salary-label">Base</span><span class="salary-value">{{ formatAriary(salaireMap[j.id].base) }}</span></div>
+                    <div class="salary-row salary-prime" v-if="salaireMap[j.id].primes > 0"><span class="salary-label">Primes</span><span class="salary-value">+{{ formatAriary(salaireMap[j.id].primes) }}</span></div>
+                    <div class="salary-row salary-penalite" v-if="salaireMap[j.id].penalites > 0"><span class="salary-label">Pénalités</span><span class="salary-value">-{{ formatAriary(salaireMap[j.id].penalites) }}</span></div>
+                    <div class="salary-row salary-final"><span class="salary-label">Final</span><span class="salary-value">{{ formatAriary(salaireMap[j.id].final) }}</span></div>
+                  </div>
+                  <div style="display:flex; gap:0.3rem; margin-top:0.25rem;">
+                    <button class="btn btn-secondary btn-sm" style="font-size:0.65rem; padding:0.15rem 0.5rem;" @click.stop="openSalaireDetailModal(j)">Détail</button>
+                    <button class="btn btn-secondary btn-sm" style="font-size:0.65rem; padding:0.15rem 0.4rem;" @click.stop="toggleSalaireJournal(j.id)" :title="hiddenSalaires[j.id]?'Afficher salaire':'Masquer salaire'">
+                      <EyeOffIcon v-if="!hiddenSalaires[j.id]" :size="10" />
+                      <EyeIcon v-else :size="10" />
+                    </button>
+                  </div>
+                </div>
+                <ChevronRightIcon :size="14" style="color:var(--text-muted); flex-shrink:0;" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -122,6 +179,18 @@
               <button class="btn btn-secondary btn-sm" @click="nextDay"><ChevronRightIcon :size="14" /></button>
               <button class="btn btn-secondary btn-sm" @click="goToday">Aujourd'hui</button>
             </div>
+          </div>
+
+          <!-- Onglets groupe -->
+          <div v-if="groupeActif" class="groupe-tabs">
+            <button
+              v-for="gj in groupeActif.journaux"
+              :key="gj.id"
+              class="groupe-tab"
+              :class="{ 'groupe-tab-active': selectedJournal?.id === gj.id }"
+              @click="selectJournal(gj)">
+              <BookOpenIcon :size="12" /> {{ gj.nom }}
+            </button>
           </div>
 
           <!-- Loading -->
@@ -323,6 +392,43 @@
         </div>
       </div>
     </div>
+
+    <!-- ===== FUSION MODAL ===== -->
+    <Teleport to="body">
+      <div v-if="groupeModal" class="modal-overlay">
+        <div class="modal-box modal-box-lg">
+          <div class="modal-header">
+            <h3 class="modal-title">Fusionner des journaux</h3>
+            <button class="modal-close" @click="groupeModal=false"><XIcon :size="16" /></button>
+          </div>
+          <div class="modal-body">
+            <div style="display:flex;flex-direction:column;gap:1rem;">
+              <div class="form-group">
+                <label class="form-label">Nom du groupe</label>
+                <input type="text" v-model="groupeForm.nom" class="form-input" placeholder="Ex: Journaux Design JMW" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Sélectionner les journaux à fusionner (min. 2)</label>
+                <div style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:0.35rem;padding:0.5rem;border:1px solid var(--border-light);border-radius:8px;">
+                  <label v-for="j in journauxSansGroupe" :key="j.id" style="display:flex;align-items:center;gap:0.6rem;padding:0.4rem 0.5rem;border-radius:6px;cursor:pointer;" :style="groupeForm.journalIds.includes(j.id)?'background:var(--bg-surface-hover);':''">
+                    <input type="checkbox" :value="j.id" v-model="groupeForm.journalIds" />
+                    <span style="font-size:0.875rem;font-weight:500;">{{ j.nom }}</span>
+                    <span style="font-size:0.75rem;color:var(--text-muted);">{{ [j.employe1,j.employe2,j.employe3,j.employe4].filter(Boolean).map(e=>e.prenom).join(', ') }}</span>
+                  </label>
+                  <div v-if="journauxSansGroupe.length===0" style="text-align:center;padding:1rem;color:var(--text-muted);font-size:0.8rem;">Aucun journal disponible pour la fusion.</div>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:flex-end;gap:0.5rem;">
+                <button class="btn btn-secondary" @click="groupeModal=false">Annuler</button>
+                <button class="btn btn-primary" @click="saveGroupe" :disabled="!groupeForm.nom.trim()||groupeForm.journalIds.length<2">
+                  <LayersIcon :size="13" /> Fusionner ({{ groupeForm.journalIds.length }} journaux)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
     <!-- ===== CREATE JOURNAL MODAL ===== -->
     <Teleport to="body">
@@ -724,13 +830,15 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import {
   BookOpen as BookOpenIcon, Plus as PlusIcon, ChevronRight as ChevronRightIcon,
-  ChevronLeft as ChevronLeftIcon, X as XIcon, Check as CheckIcon,
+  ChevronLeft as ChevronLeftIcon, ChevronDown as ChevronDownIcon, ChevronUp as ChevronUpIcon,
+  X as XIcon, Check as CheckIcon,
   Link as LinkIcon, MessageSquare as MessageSquareIcon, Menu as MenuIcon,
   Edit as EditIcon, Save as SaveIcon, Trash as TrashIcon,
   Send as SendIcon, Mail as MailIcon,
   Eye as EyeIcon, EyeOff as EyeOffIcon, Settings as SettingsIcon,
   Search as SearchIcon,
-  StickyNote as StickyNoteIcon, ChevronDown as ChevronDownIcon, ChevronUp as ChevronUpIcon
+  StickyNote as StickyNoteIcon, ChevronDown as ChevronDownIcon, ChevronUp as ChevronUpIcon,
+  Layers as LayersIcon, Unlink as UnlinkIcon
 } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'admin' })
@@ -1166,9 +1274,10 @@ const deleteJournal = async () => {
 const searchJournal = ref('')
 
 const filteredJournals = computed(() => {
-  if (!searchJournal.value.trim()) return journals.value
+  const base = journals.value.filter(j => !j.groupeId)
+  if (!searchJournal.value.trim()) return base
   const q = searchJournal.value.toLowerCase().trim()
-  return journals.value.filter(j => {
+  return base.filter(j => {
     if (j.nom?.toLowerCase().includes(q)) return true
     const emps = [j.employe1, j.employe2, j.employe3, j.employe4].filter(Boolean)
     return emps.some(e => `${e.prenom} ${e.nom}`.toLowerCase().includes(q))
@@ -1357,6 +1466,66 @@ const saveAcces = async () => {
     showAccesModal.value = false
   } catch (e) { console.error(e) }
 }
+
+// --- Fusion ---
+const groupeModal = ref(false)
+const groupeForm = ref({ nom: '', journalIds: [] })
+const openGroupe = (jId = null) => {
+  groupeForm.value = { nom: '', journalIds: jId ? [jId] : [] }
+  groupeModal.value = true
+}
+const saveGroupe = async () => {
+  if (!groupeForm.value.nom.trim() || groupeForm.value.journalIds.length < 2) return
+  try {
+    await $fetch('/api/groupes', { method: 'POST', body: groupeForm.value })
+    groupeModal.value = false
+    await loadJournals()
+  } catch (e) { console.error(e) }
+}
+const defusionner = async (groupeId) => {
+  try {
+    await $fetch(`/api/groupes/${groupeId}`, { method: 'DELETE' })
+    await loadJournals()
+    selectedJournal.value = null
+  } catch (e) { console.error(e) }
+}
+
+// Groupes calculés depuis la liste des journaux
+const groupes = computed(() => {
+  const map = {}
+  for (const j of journals.value) {
+    if (j.groupe) {
+      if (!map[j.groupeId]) map[j.groupeId] = { ...j.groupe, journaux: [] }
+      map[j.groupeId].journaux.push(j)
+    }
+  }
+  return Object.values(map)
+})
+
+const journauxSansGroupe = computed(() => journals.value.filter(j => !j.groupeId))
+
+// Journaux du groupe du journal sélectionné (pour les onglets viewer)
+const groupeActif = computed(() => {
+  if (!selectedJournal.value?.groupeId) return null
+  return groupes.value.find(g => g.id === selectedJournal.value.groupeId) || null
+})
+
+// Accordion état des groupes dans la liste
+const groupesOuverts = ref({})
+const toggleGroupe = (gId) => { groupesOuverts.value = { ...groupesOuverts.value, [gId]: !groupesOuverts.value[gId] } }
+
+const groupesFiltres = computed(() => {
+  if (!searchJournal.value.trim()) return groupes.value
+  const q = searchJournal.value.toLowerCase().trim()
+  return groupes.value.filter(g =>
+    g.nom.toLowerCase().includes(q) ||
+    g.journaux.some(j => {
+      if (j.nom?.toLowerCase().includes(q)) return true
+      const emps = [j.employe1, j.employe2, j.employe3, j.employe4].filter(Boolean)
+      return emps.some(e => `${e.prenom} ${e.nom}`.toLowerCase().includes(q))
+    })
+  )
+})
 </script>
 
 <style scoped>
@@ -1552,4 +1721,17 @@ const saveAcces = async () => {
   .entry-col { min-width:120px; }
   .eval-col { width:40px; }
 }
+
+/* Groupes / Fusion */
+.groupe-block { border-bottom:1px solid var(--border-light); }
+.groupe-header { display:flex;align-items:center;gap:0.4rem;padding:0.55rem 0.75rem;cursor:pointer;background:var(--bg-surface-hover);transition:background 0.15s; }
+.groupe-header:hover { background:var(--border-light); }
+.groupe-items { display:flex;flex-direction:column; }
+.groupe-journal-item { padding-left:1.5rem !important; border-left:3px solid var(--accent-primary); }
+.btn-defusionner { background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0.15rem 0.3rem;border-radius:4px;display:flex;align-items:center; }
+.btn-defusionner:hover { background:#fee2e2;color:#ef4444; }
+.groupe-tabs { display:flex;gap:0.25rem;padding:0.5rem 1.25rem;border-bottom:2px solid var(--border-light);background:var(--bg-surface-hover);flex-wrap:wrap; }
+.groupe-tab { display:flex;align-items:center;gap:0.35rem;padding:0.3rem 0.75rem;border-radius:6px;border:1px solid var(--border-light);background:transparent;cursor:pointer;font-size:0.78rem;font-weight:500;color:var(--text-secondary);transition:all 0.15s; }
+.groupe-tab:hover { background:var(--bg-surface);color:var(--text-primary); }
+.groupe-tab-active { background:var(--accent-primary);color:white;border-color:var(--accent-primary); }
 </style>

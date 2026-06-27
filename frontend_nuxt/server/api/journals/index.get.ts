@@ -27,7 +27,8 @@ export default defineEventHandler(async (event) => {
           include: {
             employe: { select: { id: true, nom: true, prenom: true } }
           }
-        }
+        },
+        groupe: true
       },
       orderBy: { createdAt: 'desc' }
     })
