@@ -53,6 +53,7 @@ model Employe {
   entreeJournalsEditees  EntreeJournal[]  @relation("EntreeJournalEditeur")
   journalAcces           JournalAcces[]
   evaluations            EvaluationSalaire[]
+  memos      Memo[]   @relation("MemoAuteur")
 }
 
 model Licence {
@@ -197,6 +198,7 @@ model Journal {
   editions    JournalEdition[]
   acces       JournalAcces[]
   evaluations EvaluationSalaire[]
+  memos      Memo[]
 }
 
 model JournalAcces {
@@ -315,4 +317,15 @@ model EvaluationSalaire {
   createdAt  DateTime @default(now())
   employe    Employe  @relation(fields: [employeId], references: [id], onDelete: Cascade)
   journal    Journal? @relation(fields: [journalId], references: [id], onDelete: SetNull)
+}
+
+model Memo {
+  id        String   @id @default(uuid())
+  contenu   String   @db.Text
+  liens     String?  @db.Text
+  auteurId  String
+  journalId String
+  createdAt DateTime @default(now())
+  auteur    Employe  @relation("MemoAuteur", fields: [auteurId], references: [id], onDelete: Cascade)
+  journal   Journal  @relation(fields: [journalId], references: [id], onDelete: Cascade)
 }
