@@ -22,8 +22,8 @@
           <span class="panel-title">Journaux</span>
           <div style="display:flex; align-items:center; gap:0.5rem;">
             <span class="badge">{{ journals.length }}</span>
-            <button class="icon-btn-view" @click="showSalaires=!showSalaires" :title="showSalaires?'Masquer les salaires':'Afficher les salaires'">
-              <EyeOffIcon v-if="showSalaires" :size="14" />
+            <button class="icon-btn-view" @click="toggleAllSalaires" :title="anyHidden?'Tout afficher':'Tout masquer'">
+              <EyeOffIcon v-if="!anyHidden" :size="14" />
               <EyeIcon v-else :size="14" />
             </button>
           </div>
@@ -49,17 +49,23 @@
             <div style="flex:1; min-width:0;">
               <div style="display:flex; align-items:center; gap:0.4rem;">
                 <div class="journal-item-name">{{ j.nom }}</div>
-                <span v-if="j.recentMessages > 0 && selectedJournal?.id !== j.id" class="journal-msg-badge">{{ j.recentMessages }}</span>
+                <span v-if="j.recentMessages > 0 && !visitedJournals[j.id]" class="journal-msg-badge">{{ j.recentMessages }}</span>
               </div>
               <div class="journal-item-members">{{ journalEmployes(j).map(e => `${e.prenom} ${e.nom}`).join(' & ') }}</div>
               <!-- Salary block (admin only) -->
-              <div v-if="showSalaires && salaireMap[j.id]" class="journal-salary-block">
+              <div v-if="!hiddenSalaires[j.id] && salaireMap[j.id]" class="journal-salary-block">
                 <div class="salary-row"><span class="salary-label">Base</span><span class="salary-value">{{ formatAriary(salaireMap[j.id].base) }}</span></div>
                 <div class="salary-row salary-prime" v-if="salaireMap[j.id].primes > 0"><span class="salary-label">Primes</span><span class="salary-value">+{{ formatAriary(salaireMap[j.id].primes) }}</span></div>
                 <div class="salary-row salary-penalite" v-if="salaireMap[j.id].penalites > 0"><span class="salary-label">Pénalités</span><span class="salary-value">-{{ formatAriary(salaireMap[j.id].penalites) }}</span></div>
                 <div class="salary-row salary-final"><span class="salary-label">Final</span><span class="salary-value">{{ formatAriary(salaireMap[j.id].final) }}</span></div>
               </div>
-              <button class="btn btn-secondary btn-sm" style="margin-top:0.25rem; font-size:0.65rem; padding:0.15rem 0.5rem;" @click.stop="openSalaireDetailModal(j)">Détail</button>
+              <div style="display:flex; gap:0.3rem; margin-top:0.25rem;">
+                <button class="btn btn-secondary btn-sm" style="font-size:0.65rem; padding:0.15rem 0.5rem;" @click.stop="openSalaireDetailModal(j)">Détail</button>
+                <button class="btn btn-secondary btn-sm" style="font-size:0.65rem; padding:0.15rem 0.4rem;" @click.stop="toggleSalaireJournal(j.id)" :title="hiddenSalaires[j.id]?'Afficher salaire':'Masquer salaire'">
+                  <EyeOffIcon v-if="!hiddenSalaires[j.id]" :size="10" />
+                  <EyeIcon v-else :size="10" />
+                </button>
+              </div>
             </div>
             <ChevronRightIcon :size="14" style="color:var(--text-muted); flex-shrink:0;" />
           </button>
@@ -999,10 +1005,8 @@ const formatAriary = (amount) => {
 const selectJournal = async (j) => {
   selectedJournal.value = j
   weekEmpId.value = j.employe1Id
-  // Clear the message badge locally when selecting the journal
-  if (j.recentMessages > 0) {
-    j.recentMessages = 0
-  }
+  // Mark journal as visited — hides the recentMessages badge permanently this session
+  visitedJournals.value = { ...visitedJournals.value, [j.id]: true }
   if (window.innerWidth <= 900) showSidebar.value = false
   await loadEntries()
 }
@@ -1069,7 +1073,20 @@ const deleteJournal = async () => {
 }
 
 // --- Salary visibility toggle ---
-const showSalaires = ref(true)
+// Per-journal salary visibility (persists across navigation)
+const hiddenSalaires = useState('admin-hidden-salaires', () => ({}))
+const anyHidden = computed(() => journals.value.some(j => hiddenSalaires.value[j.id]))
+const toggleSalaireJournal = (id) => { hiddenSalaires.value = { ...hiddenSalaires.value, [id]: !hiddenSalaires.value[id] } }
+const toggleAllSalaires = () => {
+  if (anyHidden.value) {
+    const cleared = {}; journals.value.forEach(j => { cleared[j.id] = false }); hiddenSalaires.value = cleared
+  } else {
+    const allHidden = {}; journals.value.forEach(j => { allHidden[j.id] = true }); hiddenSalaires.value = allHidden
+  }
+}
+
+// Visited journals — badge persists once seen (survives navigation)
+const visitedJournals = useState('admin-visited-journals', () => ({}))
 
 // --- Salary Detail Modal ---
 const showSalaireDetail = ref(false)
