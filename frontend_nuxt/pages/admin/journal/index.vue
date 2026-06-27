@@ -837,7 +837,7 @@ import {
   Send as SendIcon, Mail as MailIcon,
   Eye as EyeIcon, EyeOff as EyeOffIcon, Settings as SettingsIcon,
   Search as SearchIcon,
-  StickyNote as StickyNoteIcon, ChevronDown as ChevronDownIcon, ChevronUp as ChevronUpIcon,
+  StickyNote as StickyNoteIcon,
   Layers as LayersIcon, Unlink as UnlinkIcon
 } from 'lucide-vue-next'
 
