@@ -150,3 +150,14 @@ CREATE TABLE IF NOT EXISTS "Memo" (
   CONSTRAINT "Memo_auteurId_fkey" FOREIGN KEY ("auteurId") REFERENCES "Employe"("id") ON DELETE CASCADE,
   CONSTRAINT "Memo_journalId_fkey" FOREIGN KEY ("journalId") REFERENCES "Journal"("id") ON DELETE CASCADE
 );
+
+-- ============================================================
+-- Migration V5 : fusion/groupes de journaux
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS "GroupeJournal" (
+  "id"        TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  "nom"       TEXT NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE "Journal" ADD COLUMN IF NOT EXISTS "groupeId" TEXT REFERENCES "GroupeJournal"("id") ON DELETE SET NULL;

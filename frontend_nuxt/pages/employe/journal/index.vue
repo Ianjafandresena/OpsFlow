@@ -738,11 +738,10 @@ const sendEmpMsg = async () => {
 const canEdit = computed(() => {
   if (!selectedJournal.value || !myEmployeId.value) return true
   const j = selectedJournal.value
-  if (j.visibiliteMode !== 'SELECTIONNES') return true
-  // Vérifie si l'employé est assigné directement
+  // Les membres directs du journal (employe1-4) ont toujours les droits d'édition
   if (j.employe1Id === myEmployeId.value || j.employe2Id === myEmployeId.value ||
       j.employe3Id === myEmployeId.value || j.employe4Id === myEmployeId.value) return true
-  // Vérifie si l'employé a le droit d'éditer
+  // Les autres employés doivent avoir peutEditer explicitement à true
   const acces = j.acces?.find(a => a.employeId === myEmployeId.value)
   return acces?.peutEditer === true
 })
