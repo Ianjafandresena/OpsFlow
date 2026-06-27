@@ -11,15 +11,24 @@ export default defineEventHandler(async (event) => {
   const pastCutoff = new Date(targetDate)
   pastCutoff.setDate(pastCutoff.getDate() - 30)
 
-  const pendingEntries = await prisma.entreeJournal.findMany({
+  const allPending = await prisma.entreeJournal.findMany({
     where: {
       journalId,
       tacheId: { not: null },
       tacheTerminee: false,
-      date: { gte: pastCutoff, lt: targetDate },
-      reportee: false
+      date: { gte: pastCutoff, lt: targetDate }
     },
-    include: { tache: { include: { statutTache: true } } }
+    include: { tache: { include: { statutTache: true } } },
+    orderBy: { date: 'desc' }
+  })
+
+  // Keep only the most recent entry per tacheId+heure+employeId to avoid duplicates
+  const seen = new Set<string>()
+  const pendingEntries = allPending.filter(e => {
+    const key = `${e.tacheId}-${e.heure}-${e.employeId}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
   })
 
   let created = 0
