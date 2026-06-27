@@ -603,24 +603,25 @@
             <button class="modal-close" @click="showAccesModal=false"><XIcon :size="16" /></button>
           </div>
           <div class="modal-body">
-            <div class="form-group">
-              <label class="form-label">Qui peut voir ce journal ?</label>
-              <div style="display:flex;gap:0.75rem;">
-                <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;">
-                  <input type="radio" v-model="accesMode" value="TOUS" /> Tout le monde
-                </label>
-                <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;">
-                  <input type="radio" v-model="accesMode" value="SELECTIONNES" /> Employés sélectionnés
-                </label>
-              </div>
+            <!-- Header "Tous" row -->
+            <div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0.75rem;background:var(--bg-surface-hover);border:1px solid var(--border-light);border-radius:8px;margin-bottom:0.5rem;">
+              <label style="display:flex;align-items:center;gap:0.5rem;flex:1;cursor:pointer;font-weight:600;font-size:0.875rem;">
+                <input type="checkbox" :checked="accesTousVoir" @change="toggleAccesTousVoir" />
+                Tous — Peut voir
+              </label>
+              <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:600;font-size:0.875rem;" :style="!accesTousVoir?'opacity:0.4;pointer-events:none;':''">
+                <input type="checkbox" :checked="accesTousEditer" @change="toggleAccesTousEditer" :disabled="!accesTousVoir" />
+                Tous — Peut éditer
+              </label>
             </div>
-            <div v-if="accesMode === 'SELECTIONNES'" style="display:flex;flex-direction:column;gap:0.5rem;max-height:300px;overflow-y:auto;border:1px solid var(--border-light);border-radius:8px;padding:0.75rem;">
-              <div v-for="emp in accesEmployes" :key="emp.employeId" style="display:flex;align-items:center;gap:1rem;padding:0.4rem 0;border-bottom:1px solid var(--border-light);">
-                <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;flex:1;">
+            <!-- Per-employee list -->
+            <div style="display:flex;flex-direction:column;max-height:340px;overflow-y:auto;border:1px solid var(--border-light);border-radius:8px;">
+              <div v-for="(emp, idx) in accesEmployes" :key="emp.employeId" style="display:flex;align-items:center;gap:1rem;padding:0.45rem 0.75rem;" :style="idx%2===0?'':'background:var(--bg-surface-hover);'">
+                <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;flex:1;font-size:0.875rem;">
                   <input type="checkbox" v-model="emp.peutVoir" @change="!emp.peutVoir && (emp.peutEditer = false)" />
                   {{ emp.prenom }} {{ emp.nom }}
                 </label>
-                <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.8rem;" :style="!emp.peutVoir?'opacity:0.4;pointer-events:none;':''">
+                <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.8rem;" :style="!emp.peutVoir?'opacity:0.35;pointer-events:none;':''">
                   <input type="checkbox" v-model="emp.peutEditer" :disabled="!emp.peutVoir" />
                   Peut éditer
                 </label>
@@ -1159,18 +1160,33 @@ const deleteEvaluation = async (id) => {
 
 // --- Journal Acces Modal ---
 const showAccesModal = ref(false)
-const accesMode = ref('TOUS')
-const accesEmployes = ref([]) // [{employeId, nom, prenom, peutVoir, peutEditer}]
+const accesEmployes = ref([])
+
+const accesTousVoir = computed(() => accesEmployes.value.length > 0 && accesEmployes.value.every(e => e.peutVoir))
+const accesTousEditer = computed(() => accesEmployes.value.filter(e => e.peutVoir).length > 0 && accesEmployes.value.filter(e => e.peutVoir).every(e => e.peutEditer))
+
+const toggleAccesTousVoir = (event) => {
+  const v = event.target.checked
+  accesEmployes.value.forEach(e => { e.peutVoir = v; if (!v) e.peutEditer = false })
+}
+const toggleAccesTousEditer = (event) => {
+  const v = event.target.checked
+  accesEmployes.value.forEach(e => { if (e.peutVoir) e.peutEditer = v })
+}
 
 const openAccesModal = async () => {
   if (!selectedJournal.value) return
   try {
     const data = await $fetch(`/api/journals/${selectedJournal.value.id}/acces`)
-    accesMode.value = data.visibiliteMode || 'TOUS'
-    // Construire la liste avec tous les employés
+    const isTous = !data.visibiliteMode || data.visibiliteMode === 'TOUS'
     accesEmployes.value = employes.value.map(emp => {
       const existing = data.acces?.find(a => a.employeId === emp.id)
-      return { employeId: emp.id, nom: emp.nom, prenom: emp.prenom, peutVoir: !!existing, peutEditer: existing?.peutEditer || false }
+      // Mode TOUS → tout le monde peut voir (sans droits d'édition particuliers par défaut)
+      return {
+        employeId: emp.id, nom: emp.nom, prenom: emp.prenom,
+        peutVoir: isTous ? true : !!existing,
+        peutEditer: existing?.peutEditer || false
+      }
     })
     showAccesModal.value = true
   } catch (e) { console.error(e) }
@@ -1178,10 +1194,11 @@ const openAccesModal = async () => {
 
 const saveAcces = async () => {
   try {
+    const allChecked = accesEmployes.value.every(e => e.peutVoir)
     const acces = accesEmployes.value.filter(a => a.peutVoir).map(a => ({ employeId: a.employeId, peutEditer: a.peutEditer }))
     await $fetch(`/api/journals/${selectedJournal.value.id}/acces`, {
       method: 'PUT',
-      body: { mode: accesMode.value, acces }
+      body: { mode: allChecked ? 'TOUS' : 'SELECTIONNES', acces }
     })
     showAccesModal.value = false
   } catch (e) { console.error(e) }
@@ -1194,11 +1211,11 @@ const saveAcces = async () => {
 .journal-layout { display:grid; grid-template-columns:280px 1fr; gap:1.25rem; align-items:start; min-height:600px; }
 .journal-layout.sidebar-hidden { grid-template-columns:1fr; }
 
-.journal-list-panel { background:var(--bg-surface); border:1px solid var(--border-light); border-radius:12px; overflow:hidden; position:sticky; top:1rem; }
+.journal-list-panel { background:var(--bg-surface); border:1px solid var(--border-light); border-radius:12px; overflow:hidden; position:sticky; top:1rem; display:flex; flex-direction:column; max-height:calc(100vh - 6rem); }
 .panel-header { display:flex; align-items:center; justify-content:space-between; padding:0.875rem 1rem; border-bottom:1px solid var(--border-light); background:var(--bg-surface-hover); }
 .panel-title { font-size:0.8125rem; font-weight:700; color:var(--text-primary); }
 
-.journal-items { display:flex; flex-direction:column; }
+.journal-items { display:flex; flex-direction:column; overflow-y:auto; flex:1; }
 .journal-item { display:flex; align-items:center; gap:0.75rem; padding:0.75rem 1rem; border:none; background:transparent; cursor:pointer; text-align:left; width:100%; border-bottom:1px solid var(--border-light); transition:background 0.12s; }
 .journal-item:last-child { border-bottom:none; }
 .journal-item:hover { background:var(--bg-surface-hover); }
