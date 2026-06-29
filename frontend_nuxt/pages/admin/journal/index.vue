@@ -827,7 +827,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import {
   BookOpen as BookOpenIcon, Plus as PlusIcon, ChevronRight as ChevronRightIcon,
   ChevronLeft as ChevronLeftIcon, ChevronDown as ChevronDownIcon, ChevronUp as ChevronUpIcon,
@@ -1007,7 +1007,11 @@ const getRemark = (employeId) => {
 const formatTime = (ts) => {
   if (!ts) return ''
   const d = new Date(ts)
-  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+  const today = new Date()
+  const isToday = d.toDateString() === today.toDateString()
+  const time = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+  if (isToday) return `aujourd'hui ${time}`
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${time}`
 }
 
 const autoFillName = () => {
@@ -1336,9 +1340,21 @@ const formatMemoDate = (ts) => {
   return new Date(ts).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })
 }
 
-// --- Salary visibility toggle ---
-// Per-journal salary visibility (persists across navigation)
+// --- Salary visibility toggle (persists across sessions via localStorage) ---
+const LS_HIDDEN_KEY = 'opsflow-hidden-salaires'
 const hiddenSalaires = useState('admin-hidden-salaires', () => ({}))
+
+onMounted(() => {
+  try {
+    const saved = localStorage.getItem(LS_HIDDEN_KEY)
+    if (saved) hiddenSalaires.value = JSON.parse(saved)
+  } catch {}
+})
+
+watch(hiddenSalaires, (val) => {
+  try { localStorage.setItem(LS_HIDDEN_KEY, JSON.stringify(val)) } catch {}
+}, { deep: true })
+
 const anyHidden = computed(() => journals.value.some(j => hiddenSalaires.value[j.id]))
 const toggleSalaireJournal = (id) => { hiddenSalaires.value = { ...hiddenSalaires.value, [id]: !hiddenSalaires.value[id] } }
 const toggleAllSalaires = () => {
@@ -1665,7 +1681,7 @@ const groupesFiltres = computed(() => {
 .admin-bubble { background:#ef444410; border:1px solid #ef444430; border-bottom-right-radius:3px; }
 .chat-msg-author { font-size:0.65rem; font-weight:700; color:var(--text-muted); margin-bottom:0.2rem; }
 .chat-legacy { font-weight:400; font-style:italic; }
-.chat-time { font-weight:400; margin-left:0.4rem; }
+.chat-time { font-weight:400; margin-left:0.4rem; font-size:0.68rem; opacity:0.7; }
 .chat-input-row { display:flex; gap:0.5rem; align-items:flex-end; }
 
 /* Evaluation */

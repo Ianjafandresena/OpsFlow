@@ -539,7 +539,11 @@ const hasAdminMsg = (empId, slot, dateStr=null) => {
 const formatTime = (ts) => {
   if (!ts) return ''
   const d = new Date(ts)
-  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+  const today = new Date()
+  const isToday = d.toDateString() === today.toDateString()
+  const time = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+  if (isToday) return `aujourd'hui ${time}`
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${time}`
 }
 
 // --- Load data ---
@@ -944,7 +948,7 @@ const saveEntries = async () => {
 .admin-bubble { background:#ef444410; border:1px solid #ef444430; border-bottom-right-radius:3px; }
 .chat-msg-author { font-size:0.65rem; font-weight:700; color:var(--text-muted); margin-bottom:0.2rem; }
 .chat-legacy { font-weight:400; font-style:italic; }
-.chat-time { font-weight:400; margin-left:0.4rem; }
+.chat-time { font-weight:400; margin-left:0.4rem; font-size:0.68rem; opacity:0.7; }
 .chat-input-row { display:flex; gap:0.5rem; align-items:flex-end; }
 
 /* Eval display */
