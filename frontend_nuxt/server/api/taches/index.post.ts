@@ -1,6 +1,6 @@
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
-  
+
   // Convertir les chaînes vides et undefined en null pour les clés étrangères
   const optionalFields = [
     'plateforme', 'type_pub', 'type_demarche', 'themePubId', 'themeSponsoId',
@@ -19,8 +19,7 @@ export default defineEventHandler(async (event) => {
   // Déterminer le TypeTache enum à partir du contexte frontend
   const resolveTypeTache = () => {
     const t = body.typeTache || ''
-    
-    // 1. Vérifier d'abord les valeurs enum explicites (déjà convertis)
+
     if (t === 'MONTEUR') return 'MONTEUR'
     if (t === 'DESIGNER') return 'DESIGNER'
     if (t === 'DEV') return 'DEV'
@@ -28,24 +27,21 @@ export default defineEventHandler(async (event) => {
     if (t === 'SPONSORISATION') return 'SPONSORISATION'
     if (t === 'ADMINISTRATIVE') return 'ADMINISTRATIVE'
     if (t === 'MAILING') return 'MAILING'
-    
-    // 2. Vérifier les labels du formulaire CM (chaînes françaises du frontend)
+
     if (t === 'Publication') return 'PUBLICATION'
     if (t === 'Sponsorisation (Ads)') return 'SPONSORISATION'
     if (t === 'Démarche Administrative') return 'ADMINISTRATIVE'
     if (t === 'Mailing (Newsletter)') return 'MAILING'
-    
-    // 3. Heuristiques basées sur les champs spécialisés (quand typeTache n'est pas défini)
+
     if (body.format_video || body.duree_cible || body.demandeur) return 'MONTEUR'
     if (body.type_technique) return 'DEV'
     if (body.plateforme && body.type_pub) return 'PUBLICATION'
     if (body.themeSponsoId || (body.budget && !body.outil_mailing)) return 'SPONSORISATION'
     if (body.type_demarche) return 'ADMINISTRATIVE'
     if (body.outil_mailing) return 'MAILING'
-    // Note: type_visuel/quantite are last because CM defaultForm initializes them too
     if (body.type_visuel || body.quantite) return 'DESIGNER'
-    
-    return 'PUBLICATION' // Défaut
+
+    return 'PUBLICATION'
   }
 
   const data = {
@@ -75,78 +71,108 @@ export default defineEventHandler(async (event) => {
     lien_livrable: body.lien_livrable
   }
 
+  // --- Helpers ---
+  const buildTimeSlots = () => {
+    const slots: string[] = []
+    for (let h = 0; h <= 23; h++) {
+      slots.push(`${String(h).padStart(2, '0')}:00`)
+      slots.push(`${String(h).padStart(2, '0')}:30`)
+    }
+    return slots
+  }
+
+  const findJournal = async (employeId: string) => {
+    return prisma.journal.findFirst({
+      where: {
+        OR: [
+          { employe1Id: employeId },
+          { employe2Id: employeId },
+          { employe3Id: employeId },
+          { employe4Id: employeId },
+        ]
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+  }
+
+  const findAvailableSlot = async (journalId: string, employeId: string, date: Date) => {
+    const allSlots = buildTimeSlots()
+    const now = new Date()
+    const currentHeure = `${String(now.getHours()).padStart(2, '0')}:${now.getMinutes() < 30 ? '00' : '30'}`
+    const startIdx = Math.max(0, allSlots.indexOf(currentHeure))
+    const orderedSlots = [...allSlots.slice(startIdx), ...allSlots.slice(0, startIdx)]
+
+    const existing = await prisma.entreeJournal.findMany({
+      where: { journalId, employeId, date },
+      select: { heure: true }
+    })
+    const usedHeures = new Set(existing.map((e: any) => e.heure))
+
+    return orderedSlots.find(s => !usedHeures.has(s)) || currentHeure
+  }
+
   if (body.id) {
-    // Modification
+    // --- MODIFICATION ---
     const updatedTache = await prisma.tache.update({
       where: { id: body.id },
       data,
       include: { statutTache: true }
     })
 
-    // Si la tâche est terminée, on l'ajoute automatiquement au journal du jour s'il existe
-    if (updatedTache.statutTache?.nom?.toLowerCase() === 'terminé' || updatedTache.statutTache?.libelle?.toLowerCase() === 'terminé' || updatedTache.statutTache?.libelle?.toLowerCase() === 'terminée') {
+    const libelle = (updatedTache.statutTache?.libelle || updatedTache.statutTache?.nom || '').toLowerCase()
+    const isTermine = libelle.includes('termin') || libelle.includes('publi')
+
+    if (isTermine) {
       try {
-        // Chercher le dernier journal actif de cet employé
-        const journal = await prisma.journal.findFirst({
-          where: {
-            OR: [
-              { employe1Id: body.employeId },
-              { employe2Id: body.employeId }
-            ]
-          },
-          orderBy: { createdAt: 'desc' }
+        // Chercher l'entrée de journal existante liée à cette tâche
+        const existingEntry = await prisma.entreeJournal.findFirst({
+          where: { tacheId: updatedTache.id }
         })
 
-        if (journal) {
-          // Calculer l'heure actuelle arrondie à 30 min (ex: 14:30)
-          const now = new Date()
-          const minutes = now.getMinutes()
-          const roundedMinutes = minutes < 30 ? '00' : '30'
-          const heure = `${now.getHours().toString().padStart(2, '0')}:${roundedMinutes}`
-          
-          // Date du jour sans heure
-          const today = new Date()
-          today.setHours(0, 0, 0, 0)
-
-          await prisma.entreeJournal.upsert({
-            where: {
-              journalId_employeId_date_heure: {
-                journalId: journal.id,
-                employeId: body.employeId,
-                date: today,
-                heure: heure
-              }
-            },
-            update: {
+        if (existingEntry) {
+          // Mettre à jour l'entrée existante
+          await prisma.entreeJournal.update({
+            where: { id: existingEntry.id },
+            data: {
               contenu: `Tâche terminée : ${updatedTache.titre}`,
-              tacheId: updatedTache.id,
-              lien: updatedTache.lien_livrable
-            },
-            create: {
-              journalId: journal.id,
-              employeId: body.employeId,
-              date: today,
-              heure: heure,
-              contenu: `Tâche terminée : ${updatedTache.titre}`,
-              tacheId: updatedTache.id,
-              lien: updatedTache.lien_livrable
+              tacheTerminee: true,
+              lien: updatedTache.lien_livrable || existingEntry.lien
             }
           })
-          console.log(`Entrée de journal automatique ajoutée pour la tâche ${updatedTache.id} à ${heure}`)
+        } else {
+          // Fallback : aucune entrée existante, en créer une nouvelle
+          const journal = await findJournal(updatedTache.employeId)
+          if (journal) {
+            const today = new Date()
+            today.setHours(0, 0, 0, 0)
+            const targetSlot = await findAvailableSlot(journal.id, updatedTache.employeId, today)
+            try {
+              await prisma.entreeJournal.create({
+                data: {
+                  journalId: journal.id,
+                  employeId: updatedTache.employeId,
+                  date: today,
+                  heure: targetSlot,
+                  contenu: `Tâche terminée : ${updatedTache.titre}`,
+                  tacheId: updatedTache.id,
+                  tacheTerminee: true,
+                  lien: updatedTache.lien_livrable || null
+                }
+              })
+            } catch {}
+          }
         }
       } catch (err) {
-        console.error("Erreur lors de l'ajout automatique au journal :", err)
+        console.error("Erreur mise à jour journal lors de la clôture de tâche :", err)
       }
     }
 
     return updatedTache
   } else {
-    // Création
-    console.log('--- CREATING TACHE ---')
-    console.log(data)
+    // --- CRÉATION ---
     const newTache = await prisma.tache.create({ data })
 
-    // Créer une notification pour l'employé assigné
+    // Notification pour l'employé assigné
     try {
       await prisma.notificationEmploye.create({
         data: {
@@ -158,6 +184,34 @@ export default defineEventHandler(async (event) => {
       })
     } catch (notifErr) {
       console.error('Erreur création notification nouvelle tâche:', notifErr)
+    }
+
+    // Auto-ajouter dans le journal de l'employé dès la création
+    try {
+      const journal = await findJournal(newTache.employeId)
+      if (journal) {
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const targetSlot = await findAvailableSlot(journal.id, newTache.employeId, today)
+        try {
+          await prisma.entreeJournal.create({
+            data: {
+              journalId: journal.id,
+              employeId: newTache.employeId,
+              date: today,
+              heure: targetSlot,
+              contenu: newTache.titre,
+              tacheId: newTache.id,
+              tacheTerminee: false,
+              lien: newTache.lien_livrable || null
+            }
+          })
+        } catch (slotErr) {
+          console.error('Erreur création entrée journal pour nouvelle tâche:', slotErr)
+        }
+      }
+    } catch (journalErr) {
+      console.error("Erreur ajout journal pour nouvelle tâche:", journalErr)
     }
 
     return newTache
