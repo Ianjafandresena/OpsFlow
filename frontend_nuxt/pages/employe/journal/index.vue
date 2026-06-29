@@ -141,6 +141,14 @@
                       <span v-if="getEntryRaw(emp.id, slot)?.evaluation_type && getEntryRaw(emp.id, slot)?.evaluation_type!=='NEUTRE'" :class="evalTagClass(getEntryRaw(emp.id, slot)?.evaluation_type)" class="eval-tag-emp eval-tag-emp-inline">
                         {{ getEntryRaw(emp.id, slot)?.evaluation_type==='PRIME'?'🟢 Prime':'🔴 Pénalité' }}
                       </span>
+                      <!-- Bouton Marquer terminée pour entrées sans tacheId -->
+                      <button
+                        v-if="emp.id===myEmployeId && !getEntryRaw(emp.id, slot)?.tacheId && localGrid[emp.id][slot].contenu?.trim() && !localGrid[emp.id][slot].tacheTerminee"
+                        class="btn btn-sm" style="font-size:0.6rem;padding:0.1rem 0.35rem;background:#10b981;color:white;border:none;margin-top:0.2rem;"
+                        @click="marquerTerminee(emp.id, slot)">
+                        ✓ Déclarer terminée
+                      </button>
+                      <span v-if="!getEntryRaw(emp.id, slot)?.tacheId && localGrid[emp.id][slot].tacheTerminee" class="entry-done-badge" style="margin-top:0.2rem;">✓ Terminée</span>
                     </div>
                   </div>
                 </td>
@@ -600,7 +608,7 @@ const buildLocalGrid = () => {
       grid[emp.id] = {}
       timeSlots.forEach(slot => {
         const e = getEntryRaw(emp.id, slot)
-        grid[emp.id][slot] = { contenu: e?.contenu||'', commentaire: e?.commentaire||'', lien: e?.lien||'', recherches: e?.recherches||'', heure_affichage: e?.heure_affichage||'' }
+        grid[emp.id][slot] = { contenu: e?.contenu||'', commentaire: e?.commentaire||'', lien: e?.lien||'', recherches: e?.recherches||'', heure_affichage: e?.heure_affichage||'', tacheTerminee: e?.tacheTerminee||false }
       })
       const remarkEntry = entries.value.find(e=>e.employeId===emp.id && e.heure==='REMARQUES')
       remarks[emp.id] = remarkEntry?.contenu||''
@@ -758,6 +766,34 @@ const terminerTache = async (tacheId) => {
   } catch (e) { console.error(e) }
 }
 
+// Marquer terminée une entrée manuelle (sans tacheId)
+const marquerTerminee = async (empId, slot) => {
+  if (!selectedJournal.value || !localGrid.value[empId]?.[slot]) return
+  localGrid.value[empId][slot].tacheTerminee = true
+  try {
+    await $fetch(`/api/journals/${selectedJournal.value.id}/entrees`, {
+      method: 'POST',
+      body: {
+        date: selectedDate.value,
+        entrees: [{
+          employeId: empId,
+          heure: slot,
+          contenu: localGrid.value[empId][slot].contenu || '',
+          commentaire: localGrid.value[empId][slot].commentaire || '',
+          lien: localGrid.value[empId][slot].lien || '',
+          recherches: localGrid.value[empId][slot].recherches || '',
+          heure_affichage: localGrid.value[empId][slot].heure_affichage || null,
+          tacheTerminee: true
+        }]
+      }
+    })
+    await loadEntries()
+  } catch (e) {
+    console.error(e)
+    localGrid.value[empId][slot].tacheTerminee = false
+  }
+}
+
 const isTacheTerminee = (entry) => {
   if (entry?.tacheTerminee) return true
   const statut = entry?.tache?.statutTache
@@ -791,7 +827,8 @@ const saveEntries = async () => {
               employeId: emp.id, heure: slot,
               contenu: cell.contenu.trim(), commentaire: cell.commentaire.trim(),
               lien: cell.lien.trim(), recherches: cell.recherches.trim(),
-              heure_affichage: cell.heure_affichage||null
+              heure_affichage: cell.heure_affichage||null,
+              tacheTerminee: cell.tacheTerminee||false
             })
           }
         })

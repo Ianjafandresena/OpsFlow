@@ -81,6 +81,12 @@ export default defineEventHandler(async (event) => {
     return slots
   }
 
+  // Toujours minuit UTC pour cohérence avec les requêtes du frontend
+  const todayUTC = () => {
+    const d = new Date()
+    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
+  }
+
   const findJournal = async (employeId: string) => {
     return prisma.journal.findFirst({
       where: {
@@ -98,7 +104,7 @@ export default defineEventHandler(async (event) => {
   const findAvailableSlot = async (journalId: string, employeId: string, date: Date) => {
     const allSlots = buildTimeSlots()
     const now = new Date()
-    const currentHeure = `${String(now.getHours()).padStart(2, '0')}:${now.getMinutes() < 30 ? '00' : '30'}`
+    const currentHeure = `${String(now.getUTCHours()).padStart(2, '0')}:${now.getUTCMinutes() < 30 ? '00' : '30'}`
     const startIdx = Math.max(0, allSlots.indexOf(currentHeure))
     const orderedSlots = [...allSlots.slice(startIdx), ...allSlots.slice(0, startIdx)]
 
@@ -143,8 +149,7 @@ export default defineEventHandler(async (event) => {
           // Fallback : aucune entrée existante, en créer une nouvelle
           const journal = await findJournal(updatedTache.employeId)
           if (journal) {
-            const today = new Date()
-            today.setHours(0, 0, 0, 0)
+            const today = todayUTC()
             const targetSlot = await findAvailableSlot(journal.id, updatedTache.employeId, today)
             try {
               await prisma.entreeJournal.create({
@@ -190,8 +195,7 @@ export default defineEventHandler(async (event) => {
     try {
       const journal = await findJournal(newTache.employeId)
       if (journal) {
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
+        const today = todayUTC()
         const targetSlot = await findAvailableSlot(journal.id, newTache.employeId, today)
         try {
           await prisma.entreeJournal.create({
