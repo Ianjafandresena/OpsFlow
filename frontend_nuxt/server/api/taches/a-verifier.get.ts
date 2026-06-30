@@ -1,21 +1,34 @@
-// GET /api/taches/a-verifier — liste des tâches soumises pour validation
+// GET /api/taches/a-verifier — tâches + entrées manuelles soumises pour validation
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
 
   if (query.count === 'true') {
-    const count = await prisma.tache.count({ where: { aVerifier: true } })
-    return { count }
+    const [tachesCount, entreesCount] = await Promise.all([
+      prisma.tache.count({ where: { aVerifier: true } }),
+      prisma.entreeJournal.count({ where: { aVerifier: true, tacheId: null } })
+    ])
+    return { count: tachesCount + entreesCount }
   }
 
-  const taches = await prisma.tache.findMany({
-    where: { aVerifier: true },
-    include: {
-      employe: { select: { id: true, nom: true, prenom: true, poste: { select: { titre_poste: true, departement: { select: { nom_departement: true } } } } } },
-      statutTache: true,
-      edition: { select: { id: true, licence: { select: { sigle: true } }, ville: { select: { nom_ville: true } } } }
-    },
-    orderBy: { createdAt: 'desc' }
-  })
+  const [taches, entreesManuelles] = await Promise.all([
+    prisma.tache.findMany({
+      where: { aVerifier: true },
+      include: {
+        employe: { select: { id: true, nom: true, prenom: true, poste: { select: { titre_poste: true, departement: { select: { nom_departement: true } } } } } },
+        statutTache: true,
+        edition: { select: { id: true, licence: { select: { sigle: true } }, ville: { select: { nom_ville: true } } } }
+      },
+      orderBy: { createdAt: 'desc' }
+    }),
+    prisma.entreeJournal.findMany({
+      where: { aVerifier: true, tacheId: null },
+      include: {
+        employe: { select: { id: true, nom: true, prenom: true, poste: { select: { titre_poste: true, departement: { select: { nom_departement: true } } } } } },
+        journal: { select: { id: true, nom: true } }
+      },
+      orderBy: { updatedAt: 'desc' }
+    })
+  ])
 
-  return taches
+  return { taches, entreesManuelles }
 })

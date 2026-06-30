@@ -129,6 +129,37 @@
                         </div>
                       </div>
                     </div>
+                    <!-- Manuel entry in verif/done state (read-only) -->
+                    <div v-else-if="!getEntryRaw(emp.id, slot)?.tacheId && isManuelVerifState(emp.id, slot) && !isEditing(emp.id, slot)"
+                      class="entry-content"
+                      :class="{
+                        'entry-done': getEntryRaw(emp.id, slot)?.tacheTerminee,
+                        'entry-verif': !getEntryRaw(emp.id, slot)?.tacheTerminee && getEntryRaw(emp.id, slot)?.aVerifier,
+                        'entry-a-modifier': !getEntryRaw(emp.id, slot)?.tacheTerminee && !!getEntryRaw(emp.id, slot)?.motifModification
+                      }">
+                      <div style="display:flex; justify-content:space-between; width:100%; align-items:flex-start;">
+                        <div style="flex:1;">
+                          <span class="entry-auto-badge" style="background:#6366f1;">✎ Note</span>
+                          <span v-if="getEntryRaw(emp.id, slot)?.tacheTerminee" class="entry-done-badge">✓ Terminée</span>
+                          <span v-else-if="getEntryRaw(emp.id, slot)?.aVerifier" class="entry-verif-badge">⏳ En attente de validation</span>
+                          <span v-else-if="getEntryRaw(emp.id, slot)?.motifModification" class="entry-modifier-badge">✗ À modifier</span>
+                          {{ getEntryRaw(emp.id, slot)?.contenu }}
+                          <div v-if="getEntryRaw(emp.id, slot)?.motifModification" class="motif-modifier-box">
+                            <strong>Motif :</strong> {{ getEntryRaw(emp.id, slot)?.motifModification }}
+                          </div>
+                        </div>
+                        <div v-if="emp.id===myEmployeId" style="display:flex; gap:0.15rem; flex-shrink:0; align-items:center; flex-direction:column;">
+                          <button
+                            v-if="!getEntryRaw(emp.id, slot)?.tacheTerminee && getEntryRaw(emp.id, slot)?.motifModification"
+                            class="btn btn-sm"
+                            style="font-size:0.6rem;padding:0.1rem 0.35rem;background:#ef4444;color:white;border:none;"
+                            @click="soumettreVerificationManuelle(emp.id, slot)">
+                            Révérifier
+                          </button>
+                          <button class="edit-btn" @click="startEditing(emp.id, slot)"><EditIcon :size="11" /></button>
+                        </div>
+                      </div>
+                    </div>
                     <!-- Editable cell -->
                     <div v-else class="edit-stack">
                       <div style="position:relative;">
@@ -163,14 +194,13 @@
                       <span v-if="getEntryRaw(emp.id, slot)?.evaluation_type && getEntryRaw(emp.id, slot)?.evaluation_type!=='NEUTRE'" :class="evalTagClass(getEntryRaw(emp.id, slot)?.evaluation_type)" class="eval-tag-emp eval-tag-emp-inline">
                         {{ getEntryRaw(emp.id, slot)?.evaluation_type==='PRIME'?'🟢 Prime':'🔴 Pénalité' }}
                       </span>
-                      <!-- Bouton Marquer terminée pour entrées sans tacheId -->
+                      <!-- Bouton À vérifier pour entrées manuelles -->
                       <button
-                        v-if="emp.id===myEmployeId && !getEntryRaw(emp.id, slot)?.tacheId && localGrid[emp.id][slot].contenu?.trim() && !localGrid[emp.id][slot].tacheTerminee"
-                        class="btn btn-sm" style="font-size:0.6rem;padding:0.1rem 0.35rem;background:#10b981;color:white;border:none;margin-top:0.2rem;"
-                        @click="marquerTerminee(emp.id, slot)">
-                        ✓ Déclarer terminée
+                        v-if="emp.id===myEmployeId && !getEntryRaw(emp.id, slot)?.tacheId && localGrid[emp.id][slot].contenu?.trim()"
+                        class="btn btn-sm" style="font-size:0.6rem;padding:0.1rem 0.35rem;background:#f59e0b;color:white;border:none;margin-top:0.2rem;"
+                        @click="soumettreVerificationManuelle(emp.id, slot)">
+                        À vérifier
                       </button>
-                      <span v-if="!getEntryRaw(emp.id, slot)?.tacheId && localGrid[emp.id][slot].tacheTerminee" class="entry-done-badge" style="margin-top:0.2rem;">✓ Terminée</span>
                     </div>
                   </div>
                 </td>
@@ -786,6 +816,40 @@ const terminerTache = async (tacheId) => {
 const soumettreVerification = async (tacheId) => {
   try {
     await $fetch(`/api/taches/${tacheId}/verifier`, { method: 'POST' })
+    await loadEntries()
+  } catch (e) { console.error(e) }
+}
+
+const isManuelVerifState = (empId, slot) => {
+  const e = getEntryRaw(empId, slot)
+  if (!e || e.tacheId) return false
+  return e.aVerifier || !!e.motifModification || e.tacheTerminee
+}
+
+const soumettreVerificationManuelle = async (empId, slot) => {
+  if (!selectedJournal.value || !localGrid.value[empId]?.[slot]) return
+  const contenu = localGrid.value[empId][slot].contenu || ''
+  if (!contenu.trim()) return
+  try {
+    await $fetch(`/api/journals/${selectedJournal.value.id}/entrees`, {
+      method: 'POST',
+      body: {
+        date: selectedDate.value,
+        entrees: [{
+          employeId: empId,
+          heure: slot,
+          contenu: contenu,
+          commentaire: localGrid.value[empId][slot].commentaire || '',
+          lien: localGrid.value[empId][slot].lien || '',
+          recherches: localGrid.value[empId][slot].recherches || '',
+          heure_affichage: localGrid.value[empId][slot].heure_affichage || null,
+          tacheTerminee: false,
+          aVerifier: true,
+          motifModification: null
+        }]
+      }
+    })
+    editingCells.value.delete(`${empId}-${slot}`)
     await loadEntries()
   } catch (e) { console.error(e) }
 }
