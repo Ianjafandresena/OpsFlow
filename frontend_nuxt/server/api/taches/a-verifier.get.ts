@@ -24,7 +24,8 @@ export default defineEventHandler(async (event) => {
       where: { aVerifier: true, tacheId: null },
       include: {
         employe: { select: { id: true, nom: true, prenom: true, poste: { select: { titre_poste: true, departement: { select: { nom_departement: true } } } } } },
-        journal: { select: { id: true, nom: true } }
+        journal: { select: { id: true, nom: true } },
+        commentaires: { orderBy: { createdAt: 'asc' } }
       },
       orderBy: { updatedAt: 'desc' }
     })

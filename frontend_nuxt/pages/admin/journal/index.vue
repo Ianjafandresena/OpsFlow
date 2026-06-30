@@ -220,13 +220,27 @@
                   <td class="time-cell">{{ slot }}</td>
                   <template v-for="(emp,idx) in currentEmployes" :key="emp.id">
                     <td class="entry-cell">
-                      <div v-if="getEntry(emp.id, slot)" class="entry-content" :class="{ 'entry-auto': getEntry(emp.id, slot)?.tacheId }">
+                      <div v-if="getEntry(emp.id, slot)" class="entry-content"
+                        :class="{
+                          'entry-auto': getEntry(emp.id, slot)?.tacheId,
+                          'entry-done': getEntry(emp.id, slot)?.tacheTerminee,
+                          'entry-verif': entryIsVerif(getEntry(emp.id, slot)),
+                          'entry-a-modifier': entryIsModifier(getEntry(emp.id, slot))
+                        }">
                         <div style="display:flex; justify-content:space-between; width:100%; align-items:flex-start; gap:0.25rem;">
                           <div style="flex:1; min-width:0;">
                             <span v-if="getEntry(emp.id, slot)?.tacheId" class="entry-auto-badge"><CheckIcon :size="10" /> Tâche</span>
+                            <span v-if="getEntry(emp.id, slot)?.tacheTerminee" class="entry-done-badge">✓ Terminée</span>
+                            <span v-else-if="entryIsVerif(getEntry(emp.id, slot))" class="entry-verif-badge">⏳ À vérifier</span>
+                            <span v-else-if="entryIsModifier(getEntry(emp.id, slot))" class="entry-modifier-badge">✗ À modifier</span>
                             <span v-if="getEntry(emp.id, slot)?.heure_affichage" class="entry-time-badge">{{ getEntry(emp.id, slot)?.heure_affichage }}</span>
                             <span class="entry-text">{{ getEntry(emp.id, slot)?.contenu }}</span>
                             <span v-if="getEntry(emp.id, slot)?.editeur" class="entry-editor">✏️ {{ getEntry(emp.id, slot)?.editeur?.prenom }}</span>
+                            <div v-if="entryMotif(getEntry(emp.id, slot))" class="motif-modifier-box"><strong>Motif :</strong> {{ entryMotif(getEntry(emp.id, slot)) }}</div>
+                            <div v-if="entryIsVerif(getEntry(emp.id, slot))" style="display:flex;gap:0.2rem;margin-top:0.3rem;flex-wrap:wrap;">
+                              <button @click.stop="terminerEntreeInline(getEntry(emp.id, slot))" class="btn btn-sm" style="font-size:0.6rem;padding:0.1rem 0.3rem;background:#10b981;color:white;border:none;">✓ Terminer</button>
+                              <button @click.stop="openModifInlineModal(getEntry(emp.id, slot))" class="btn btn-sm" style="font-size:0.6rem;padding:0.1rem 0.3rem;background:#f59e0b;color:white;border:none;">✎ Modifier</button>
+                            </div>
                           </div>
                           <div class="entry-action-row">
                             <button class="icon-btn-view comment-icon-btn" :class="{ 'has-comments': msgCount(emp.id, slot) > 0 }" @click="openEntryModal(emp.id, slot)" :title="msgCount(emp.id,slot)+' message(s)'">
@@ -609,6 +623,16 @@
               </details>
             </div>
 
+            <!-- Vérification -->
+            <div v-if="activeEntryIsVerif || activeEntryIsModifier" class="modal-section">
+              <div class="modal-section-title" style="color:#d97706;">Vérification</div>
+              <div v-if="activeEntryIsModifier" class="motif-modifier-box" style="margin-bottom:0.75rem;"><strong>Motif de modification :</strong> {{ activeEntryMotif }}</div>
+              <div v-if="activeEntryIsVerif" style="display:flex;gap:0.5rem;">
+                <button @click="terminerEntreeFromModal" class="btn btn-sm" style="background:#10b981;color:white;border:none;display:flex;align-items:center;gap:0.3rem;"><CheckIcon :size="13" /> Terminer</button>
+                <button @click="openModifFromModal" class="btn btn-sm" style="background:#f59e0b;color:white;border:none;display:flex;align-items:center;gap:0.3rem;"><EditIcon :size="13" /> À modifier</button>
+              </div>
+            </div>
+
             <!-- Évaluation -->
             <div class="modal-section">
               <div class="modal-section-title">Évaluation</div>
@@ -666,6 +690,32 @@
             <div v-for="(mail,i) in modalMails" :key="i" class="link-item">
               <a :href="'mailto:'+mail" class="link-item-url"><MailIcon :size="12" /> {{ mail }}</a>
             </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- À MODIFIER INLINE MODAL -->
+    <Teleport to="body">
+      <div v-if="showModifInlineModal" class="modal-overlay">
+        <div class="modal-box" style="max-width:480px;">
+          <div class="modal-header">
+            <h3 class="modal-title"><EditIcon :size="15" /> Demande de modification</h3>
+            <button class="modal-close" @click="showModifInlineModal=false"><XIcon :size="16" /></button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label class="form-label">Motif <span style="color:#ef4444;">*</span></label>
+              <textarea v-model="modifInlineMotif" class="form-input" rows="4" placeholder="Décrivez précisément ce qui doit être corrigé..." style="resize:vertical;"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" @click="showModifInlineModal=false">Annuler</button>
+            <button class="btn btn-primary" :disabled="!modifInlineMotif.trim() || submittingModifInline" @click="envoyerModifInline">
+              <span v-if="submittingModifInline" class="spinner-xs"></span>
+              <SendIcon v-else :size="13" />
+              {{ submittingModifInline ? 'Envoi...' : 'Envoyer' }}
+            </button>
           </div>
         </div>
       </div>
@@ -1002,6 +1052,81 @@ const evalClass = (employeId, heure, date = null) => {
 
 const getRemark = (employeId) => {
   return entries.value.filter(e => e.employeId===employeId && e.heure==='REMARQUES').map(e => e.contenu).join(' ')
+}
+
+// --- 3-state entry helpers (verif / modifier / done) ---
+const entryIsVerif = (e) => {
+  if (!e) return false
+  if (e.tacheId) return (e.tache?.aVerifier === true) && !e.tache?.motifModification
+  return e.aVerifier === true && !e.motifModification
+}
+const entryIsModifier = (e) => {
+  if (!e) return false
+  if (e.tacheId) return !!e.tache?.motifModification
+  return !!e.motifModification
+}
+const entryMotif = (e) => {
+  if (!e) return null
+  if (e.tacheId) return e.tache?.motifModification || null
+  return e.motifModification || null
+}
+
+// --- Active entry state (for modal) ---
+const activeEntryData = computed(() => getEntry(activeEmployeId.value, activeSlot.value, activeDate.value))
+const activeEntryIsVerif = computed(() => entryIsVerif(activeEntryData.value))
+const activeEntryIsModifier = computed(() => entryIsModifier(activeEntryData.value))
+const activeEntryMotif = computed(() => entryMotif(activeEntryData.value))
+
+// --- Inline verif actions ---
+const showModifInlineModal = ref(false)
+const modifInlineTarget = ref(null)
+const modifInlineMotif = ref('')
+const submittingModifInline = ref(false)
+
+const terminerEntreeInline = async (entry) => {
+  if (!entry) return
+  try {
+    if (entry.tacheId) await $fetch(`/api/taches/${entry.tacheId}/terminer`, { method: 'POST' })
+    else await $fetch(`/api/entrees/${entry.id}/terminer`, { method: 'POST' })
+    await loadEntries()
+  } catch (e) { console.error(e) }
+}
+
+const openModifInlineModal = (entry) => {
+  modifInlineTarget.value = entry
+  modifInlineMotif.value = ''
+  showModifInlineModal.value = true
+}
+
+const envoyerModifInline = async () => {
+  if (!modifInlineTarget.value || !modifInlineMotif.value.trim()) return
+  submittingModifInline.value = true
+  try {
+    const e = modifInlineTarget.value
+    if (e.tacheId) await $fetch(`/api/taches/${e.tacheId}/modifier-demande`, { method: 'POST', body: { motif: modifInlineMotif.value } })
+    else await $fetch(`/api/entrees/${e.id}/modifier-demande`, { method: 'POST', body: { motif: modifInlineMotif.value } })
+    showModifInlineModal.value = false
+    await loadEntries()
+  } catch (e) { console.error(e) }
+  finally { submittingModifInline.value = false }
+}
+
+const terminerEntreeFromModal = async () => {
+  const entry = activeEntryData.value
+  if (!entry) return
+  try {
+    if (entry.tacheId) await $fetch(`/api/taches/${entry.tacheId}/terminer`, { method: 'POST' })
+    else await $fetch(`/api/entrees/${entry.id}/terminer`, { method: 'POST' })
+    closeEntryModal()
+    await loadEntries()
+  } catch (e) { console.error(e) }
+}
+
+const openModifFromModal = () => {
+  const entry = activeEntryData.value
+  if (!entry) return
+  closeEntryModal()
+  openModifInlineModal(entry)
 }
 
 const formatTime = (ts) => {
@@ -1624,6 +1749,13 @@ const groupesFiltres = computed(() => {
 .entry-text { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; font-size:0.8rem; }
 .entry-empty { color:var(--text-muted); font-size:0.75rem; padding:0.2rem 0; display:flex; align-items:center; gap:0.25rem; }
 
+.entry-done { background:#10b98110 !important; border-color:#10b98140 !important; }
+.entry-verif { background:#f59e0b10 !important; border-color:#f59e0b40 !important; }
+.entry-a-modifier { background:#ef444410 !important; border-color:#ef444440 !important; }
+.entry-done-badge { display:inline-flex;align-items:center;gap:0.15rem;background:#10b981;color:white;font-size:0.6rem;font-weight:700;padding:0.1rem 0.35rem;border-radius:99px;flex-shrink:0;margin-right:0.25rem; }
+.entry-verif-badge { display:inline-flex;align-items:center;gap:0.15rem;background:#f59e0b;color:white;font-size:0.6rem;font-weight:700;padding:0.1rem 0.35rem;border-radius:99px;flex-shrink:0;margin-right:0.25rem; }
+.entry-modifier-badge { display:inline-flex;align-items:center;gap:0.15rem;background:#ef4444;color:white;font-size:0.6rem;font-weight:700;padding:0.1rem 0.35rem;border-radius:99px;flex-shrink:0;margin-right:0.25rem; }
+.motif-modifier-box { background:#ef444410;border:1px solid #ef444430;border-radius:6px;padding:0.35rem 0.5rem;font-size:0.75rem;color:#dc2626;margin-top:0.25rem;white-space:pre-wrap; }
 .entry-editor { display:inline-flex; align-items:center; gap:0.15rem; font-size:0.65rem; color:var(--text-muted); margin-left:0.25rem; }
 .entry-action-row { display:flex; align-items:center; gap:0.15rem; flex-shrink:0; }
 .icon-btn-view { background:none; border:none; cursor:pointer; color:var(--text-muted); padding:0.15rem; border-radius:4px; display:flex; align-items:center; justify-content:center; transition:all 0.15s; position:relative; }
