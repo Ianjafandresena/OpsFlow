@@ -168,6 +168,8 @@ ALTER TABLE "Journal" ADD COLUMN IF NOT EXISTS "groupeId" TEXT REFERENCES "Group
 
 -- aVerifier flag sur Tache (l'employé soumet pour validation admin)
 ALTER TABLE "Tache" ADD COLUMN IF NOT EXISTS "aVerifier" BOOLEAN NOT NULL DEFAULT false;
+-- motifModification : motif de retour admin (À modifier flow)
+ALTER TABLE "Tache" ADD COLUMN IF NOT EXISTS "motifModification" TEXT;
 
 -- Table LienImportant (liens partagés par toute l'équipe)
 CREATE TABLE IF NOT EXISTS "LienImportant" (

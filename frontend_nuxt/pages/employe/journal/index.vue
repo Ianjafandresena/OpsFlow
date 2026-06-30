@@ -85,17 +85,22 @@
                       class="entry-content entry-auto"
                       :class="{
                         'entry-done': isTacheTerminee(getEntryRaw(emp.id, slot)),
-                        'entry-verif': !isTacheTerminee(getEntryRaw(emp.id, slot)) && getEntryRaw(emp.id, slot)?.tache?.aVerifier,
-                        'entry-overdue': !isTacheTerminee(getEntryRaw(emp.id, slot)) && !getEntryRaw(emp.id, slot)?.tache?.aVerifier && getEntryRaw(emp.id, slot)?.reportee
+                        'entry-verif': !isTacheTerminee(getEntryRaw(emp.id, slot)) && getEntryRaw(emp.id, slot)?.tache?.aVerifier && !getEntryRaw(emp.id, slot)?.tache?.motifModification,
+                        'entry-a-modifier': !isTacheTerminee(getEntryRaw(emp.id, slot)) && !!getEntryRaw(emp.id, slot)?.tache?.motifModification,
+                        'entry-overdue': !isTacheTerminee(getEntryRaw(emp.id, slot)) && !getEntryRaw(emp.id, slot)?.tache?.aVerifier && !getEntryRaw(emp.id, slot)?.tache?.motifModification && getEntryRaw(emp.id, slot)?.reportee
                       }">
                       <div style="display:flex; justify-content:space-between; width:100%; align-items:flex-start;">
                         <div style="flex:1;">
                           <span class="entry-auto-badge"><CheckIcon :size="10" /> Tâche</span>
                           <span v-if="isTacheTerminee(getEntryRaw(emp.id, slot))" class="entry-done-badge">✓ Terminée</span>
                           <span v-else-if="getEntryRaw(emp.id, slot)?.tache?.aVerifier" class="entry-verif-badge">⏳ En attente de validation</span>
+                          <span v-else-if="getEntryRaw(emp.id, slot)?.tache?.motifModification" class="entry-modifier-badge">✗ À modifier</span>
                           <span v-else-if="getEntryRaw(emp.id, slot)?.reportee" class="entry-overdue-badge">⚠ Reportée</span>
                           <span v-if="getEntryRaw(emp.id, slot)?.heure_affichage" class="entry-time-chip">{{ getEntryRaw(emp.id, slot)?.heure_affichage }}</span>
                           {{ localGrid[emp.id][slot].contenu || getEntryRaw(emp.id, slot)?.contenu }}
+                          <div v-if="getEntryRaw(emp.id, slot)?.tache?.motifModification" class="motif-modifier-box">
+                            <strong>Motif :</strong> {{ getEntryRaw(emp.id, slot)?.tache?.motifModification }}
+                          </div>
                         </div>
                         <div style="display:flex; gap:0.15rem; flex-shrink:0; align-items:center; flex-direction:column;">
                           <button v-if="hasAdminMsg(emp.id, slot)" class="icon-btn notif-btn" @click="openEntryModal(emp.id, slot)" title="Message de l'admin">
@@ -104,12 +109,21 @@
                           <span v-if="getEntryRaw(emp.id, slot)?.evaluation_type && getEntryRaw(emp.id, slot)?.evaluation_type!=='NEUTRE'" :class="evalTagClass(getEntryRaw(emp.id, slot)?.evaluation_type)" class="eval-tag-emp">
                             {{ getEntryRaw(emp.id, slot)?.evaluation_type==='PRIME'?'Prime':'Pénal.' }}
                           </span>
+                          <!-- Bouton "À vérifier" : tâche normale non terminée -->
                           <button
-                            v-if="!isTacheTerminee(getEntryRaw(emp.id, slot)) && !getEntryRaw(emp.id, slot)?.tache?.aVerifier && emp.id===myEmployeId"
+                            v-if="!isTacheTerminee(getEntryRaw(emp.id, slot)) && !getEntryRaw(emp.id, slot)?.tache?.aVerifier && !getEntryRaw(emp.id, slot)?.tache?.motifModification && emp.id===myEmployeId"
                             class="btn btn-sm"
                             style="font-size:0.6rem;padding:0.1rem 0.35rem;background:#f59e0b;color:white;border:none;"
                             @click="soumettreVerification(getEntryRaw(emp.id, slot).tacheId)">
                             À vérifier
+                          </button>
+                          <!-- Bouton "Révérifier" : après retour admin -->
+                          <button
+                            v-if="!isTacheTerminee(getEntryRaw(emp.id, slot)) && getEntryRaw(emp.id, slot)?.tache?.motifModification && emp.id===myEmployeId"
+                            class="btn btn-sm"
+                            style="font-size:0.6rem;padding:0.1rem 0.35rem;background:#ef4444;color:white;border:none;"
+                            @click="soumettreVerification(getEntryRaw(emp.id, slot).tacheId)">
+                            Révérifier
                           </button>
                           <button class="edit-btn" @click="startEditing(emp.id, slot)"><EditIcon :size="11" /></button>
                         </div>
@@ -945,9 +959,12 @@ const saveEntries = async () => {
 .entry-auto { background:#10b98110; border-color:#10b98130; }
 .entry-done { background: #10b98115 !important; border-color: #10b98150 !important; }
 .entry-verif { background: #f59e0b15 !important; border-color: #f59e0b50 !important; }
-.entry-overdue { background: #ef444415 !important; border-color: #ef444450 !important; }
+.entry-a-modifier { background: #ef444415 !important; border-color: #ef444450 !important; }
+.entry-overdue { background: #94a3b815 !important; border-color: #94a3b850 !important; }
 .entry-done-badge { display:inline-flex; align-items:center; background: #10b981; color: white; font-size: 0.6rem; font-weight: 700; padding: 0.1rem 0.35rem; border-radius: 99px; margin-right:0.25rem; }
 .entry-verif-badge { display:inline-flex; align-items:center; background: #f59e0b; color: white; font-size: 0.6rem; font-weight: 700; padding: 0.1rem 0.35rem; border-radius: 99px; margin-right:0.25rem; }
+.entry-modifier-badge { display:inline-flex; align-items:center; background: #ef4444; color: white; font-size: 0.6rem; font-weight: 700; padding: 0.1rem 0.35rem; border-radius: 99px; margin-right:0.25rem; }
+.motif-modifier-box { margin-top:0.35rem; font-size:0.72rem; color:#dc2626; background:#ef444410; border:1px solid #ef444430; border-radius:5px; padding:0.25rem 0.5rem; line-height:1.4; }
 .entry-overdue-badge { display:inline-flex; align-items:center; background: #ef4444; color: white; font-size: 0.6rem; font-weight: 700; padding: 0.1rem 0.35rem; border-radius: 99px; margin-right:0.25rem; }
 .entry-auto-badge { display:inline-flex; align-items:center; gap:0.2rem; background:#10b981; color:white; font-size:0.6rem; font-weight:700; padding:0.1rem 0.35rem; border-radius:99px; flex-shrink:0; margin-right:0.25rem; }
 .edit-btn { background:none; border:none; cursor:pointer; color:var(--text-muted); padding:0.1rem; border-radius:3px; display:flex; align-items:center; }

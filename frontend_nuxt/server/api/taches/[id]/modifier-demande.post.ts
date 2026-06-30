@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
 
   const tache = await prisma.tache.update({
     where: { id },
-    data: { aVerifier: false },
+    data: { aVerifier: false, motifModification: motif.trim() },
     include: { employe: { select: { id: true, nom: true, prenom: true } } }
   })
 

@@ -135,7 +135,8 @@ model Tache {
   statutTache    StatutTache  @relation(fields: [statutTacheId], references: [id])
   themePub       Theme?       @relation("ThemePublication", fields: [themePubId], references: [id])
   themeSponso    Theme?       @relation("ThemeSponsorisation", fields: [themeSponsoId], references: [id])
-  aVerifier      Boolean      @default(false)
+  aVerifier          Boolean   @default(false)
+  motifModification  String?   @db.Text
   demandes       DemandeTache[]
   entreesJournal EntreeJournal[]
   tachesLues     TacheLue[]

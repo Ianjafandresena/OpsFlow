@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
 
   const tache = await prisma.tache.update({
     where: { id },
-    data: { statutTacheId: statutTermine.id, aVerifier: false }
+    data: { statutTacheId: statutTermine.id, aVerifier: false, motifModification: null }
   })
 
   // Marquer les entrées associées comme terminées

@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
       },
       include: {
         tache: {
-          select: { id: true, titre: true, lien_livrable: true, aVerifier: true, statutTache: { select: { libelle: true } } }
+          select: { id: true, titre: true, lien_livrable: true, aVerifier: true, motifModification: true, statutTache: { select: { libelle: true } } }
         },
         editeur: { select: { id: true, nom: true, prenom: true } },
         commentaires: {
@@ -119,7 +119,7 @@ export default defineEventHandler(async (event) => {
                   lien: task.lien_livrable || null
                 },
                 include: {
-                  tache: { select: { id: true, titre: true, lien_livrable: true, aVerifier: true, statutTache: { select: { libelle: true } } } },
+                  tache: { select: { id: true, titre: true, lien_livrable: true, aVerifier: true, motifModification: true, statutTache: { select: { libelle: true } } } },
                   editeur: { select: { id: true, nom: true, prenom: true } },
                   commentaires: { orderBy: { createdAt: 'asc' } }
                 }
@@ -147,7 +147,7 @@ export default defineEventHandler(async (event) => {
               },
               orderBy: [{ date: 'desc' }],
               include: {
-                tache: { select: { id: true, titre: true, lien_livrable: true, aVerifier: true, statutTache: { select: { libelle: true } } } }
+                tache: { select: { id: true, titre: true, lien_livrable: true, aVerifier: true, motifModification: true, statutTache: { select: { libelle: true } } } }
               }
             })
             // Garder la plus récente entrée par tacheId (trié par date desc)
@@ -179,7 +179,7 @@ export default defineEventHandler(async (event) => {
                     lien: prev.lien || null
                   },
                   include: {
-                    tache: { select: { id: true, titre: true, lien_livrable: true, aVerifier: true, statutTache: { select: { libelle: true } } } },
+                    tache: { select: { id: true, titre: true, lien_livrable: true, aVerifier: true, motifModification: true, statutTache: { select: { libelle: true } } } },
                     editeur: { select: { id: true, nom: true, prenom: true } },
                     commentaires: { orderBy: { createdAt: 'asc' } }
                   }
