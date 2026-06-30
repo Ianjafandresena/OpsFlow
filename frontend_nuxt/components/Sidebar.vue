@@ -33,6 +33,10 @@
           <NuxtLink to="/admin/taches/dev" class="nav-link" active-class="nav-link-active">
             <CodeIcon :size="15" /> Développeurs Web
           </NuxtLink>
+          <NuxtLink to="/admin/taches/a-verifier" class="nav-link" active-class="nav-link-active">
+            <ClipboardCheckIcon :size="15" /> À Vérifier
+            <span v-if="aVerifierCount > 0" class="nav-notif-badge">{{ aVerifierCount }}</span>
+          </NuxtLink>
         </div>
 
         <!-- Analyse -->
@@ -66,6 +70,9 @@
           <NuxtLink to="/admin/roles" class="nav-link" active-class="nav-link-active">
             <ShieldIcon :size="15" /> Comptes & Rôles
             <span v-if="pendingCount > 0" class="nav-notif-badge">{{ pendingCount }}</span>
+          </NuxtLink>
+          <NuxtLink to="/admin/liens" class="nav-link" active-class="nav-link-active">
+            <ExternalLinkIcon :size="15" /> Liens Importants
           </NuxtLink>
         </div>
 
@@ -110,6 +117,9 @@
           <NuxtLink to="/employe/reglement" class="nav-link" active-class="nav-link-active" @click="clearNotifType('REGLEMENT')">
             <ScrollTextIcon :size="15" /> Règlements
             <span v-if="notifReglement > 0" class="nav-notif-badge">{{ notifReglement }}</span>
+          </NuxtLink>
+          <NuxtLink to="/employe/liens" class="nav-link" active-class="nav-link-active">
+            <ExternalLinkIcon :size="15" /> Liens Importants
           </NuxtLink>
         </div>
 
@@ -171,7 +181,9 @@ import {
   Moon as MoonIcon,
   Sun as SunIcon,
   BookOpen as BookOpenIcon,
-  ScrollText as ScrollTextIcon
+  ScrollText as ScrollTextIcon,
+  ClipboardCheck as ClipboardCheckIcon,
+  ExternalLink as ExternalLinkIcon
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -183,10 +195,12 @@ const { isDark, toggleTheme } = useTheme()
 
 // Pending account count for admin badge
 const pendingCount = ref(0)
+// À vérifier count for admin badge
+const aVerifierCount = ref(0)
 
 // Employee notification counts by type
 const notifications = ref([])
-const notifTaches = computed(() => notifications.value.filter(n => n.type === 'NOUVELLE_TACHE').length)
+const notifTaches = computed(() => notifications.value.filter(n => n.type === 'NOUVELLE_TACHE' || n.type === 'A_MODIFIER').length)
 const notifJournal = computed(() => notifications.value.filter(n => n.type === 'COMMENTAIRE').length)
 const notifReglement = computed(() => notifications.value.filter(n => n.type === 'REGLEMENT').length)
 
@@ -195,6 +209,10 @@ onMounted(async () => {
     try {
       const res = await $fetch('/api/auth/pending')
       pendingCount.value = res?.length || 0
+    } catch {}
+    try {
+      const res = await $fetch('/api/taches/a-verifier', { query: { count: 'true' } })
+      aVerifierCount.value = res?.count || 0
     } catch {}
   }
 
