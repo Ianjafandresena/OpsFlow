@@ -1,0 +1,161 @@
+{
+  "name": "Meta Analyse Performance - JOF JMW",
+  "nodes": [
+    {
+      "id": "node-manual-trigger",
+      "name": "Demarrage Manuel",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        80,
+        280
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "node-schedule-trigger",
+      "name": "Declencheur Hebdomadaire",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        80,
+        460
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 8,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-config",
+      "name": "Configuration",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        360
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// === A REMPLIR AVANT DEPLOIEMENT ===\n// 1. Token Meta : System User token (Business Manager > Utilisateurs systeme)\n//    Droits requis : ads_read, pages_read_engagement, instagram_basic\n// 2. ad_account_id : visible sur business.facebook.com (format act_XXXXXXXXXX)\n// 3. page_id : Page Facebook > A propos > Identifiant de la page\n// 4. ig_user_id : Instagram Business Account ID (via Graph API Explorer)\n\nconst TOKEN = $env.META_ACCESS_TOKEN || 'REMPLACER_PAR_TOKEN_META';\nconst EMAIL_RAPPORT = $env.RAPPORT_EMAIL || 'christoftran@gmail.com';\n\nreturn [{\n  json: {\n    token: TOKEN,\n    email: EMAIL_RAPPORT,\n    date_preset: 'last_30d',\n    villes: [\n      { nom: 'Metz', ad_account_id: 'act_XXXXXXXXXX', page_id: 'XXXXXXXXXX', ig_user_id: null, budget_alloue: 5000 },\n      { nom: 'Bordeaux', ad_account_id: 'act_XXXXXXXXXX', page_id: 'XXXXXXXXXX', ig_user_id: null, budget_alloue: 5000 },\n      { nom: 'Evreux', ad_account_id: 'act_XXXXXXXXXX', page_id: 'XXXXXXXXXX', ig_user_id: null, budget_alloue: 5000 },\n      { nom: 'Nevers', ad_account_id: 'act_XXXXXXXXXX', page_id: null, ig_user_id: 'XXXXXXXXXX', budget_alloue: 5000 }\n    ]\n  }\n}];"
+      }
+    },
+    {
+      "id": "node-fetch-analyze",
+      "name": "Recuperer et Analyser Meta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        360
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const config = $input.first().json;\nconst { token, villes, date_preset } = config;\nconst BASE = 'https://graph.facebook.com/v19.0';\n\nconst get = async (url) => {\n  const r = await fetch(url);\n  const data = await r.json();\n  if (data.error) throw new Error(`Meta API: ${data.error.message}`);\n  return data;\n};\n\nconst recommander = (impressions, reach, clicks) => {\n  const ctr = impressions > 0 ? clicks / impressions * 100 : 0;\n  if (impressions < 300) return { action: 'Donnees insuffisantes.', couleur: '#9ca3af' };\n  if (reach > 50000 && ctr >= 1) return { action: 'Relancer massivement.', couleur: '#16a34a' };\n  if (ctr >= 2 || (ctr >= 1 && impressions > 10000)) return { action: 'Augmenter le budget.', couleur: '#16a34a' };\n  if (ctr >= 0.5 && impressions >= 3000) return { action: 'Maintenir.', couleur: '#2563eb' };\n  if (ctr >= 0.2 && impressions >= 1000) return { action: 'Garder.', couleur: '#2563eb' };\n  if (ctr < 0.1 && impressions >= 5000) return { action: 'Stopper. Trop cher.', couleur: '#dc2626' };\n  if (impressions < 3000 && ctr < 0.3) return { action: 'Stopper.', couleur: '#dc2626' };\n  return { action: 'A surveiller.', couleur: '#f59e0b' };\n};\n\nconst results = [];\n\nfor (const ville of villes) {\n  let campagnesAnalysees = [];\n  try {\n    const insightsUrl = `${BASE}/${ville.ad_account_id}/insights?fields=campaign_name,campaign_id,impressions,reach,clicks,actions,spend&level=campaign&date_preset=${date_preset}&limit=50&access_token=${token}`;\n    const insightsData = await get(insightsUrl);\n    const campaigns = insightsData.data || [];\n\n    campagnesAnalysees = campaigns.map(c => {\n      const impressions = parseInt(c.impressions) || 0;\n      const reach = parseInt(c.reach) || 0;\n      const clicks = parseInt(c.clicks) || 0;\n      const spend = parseFloat(c.spend) || 0;\n      const actions = c.actions || [];\n      const interactions = parseInt(actions.find(a => a.action_type === 'post_engagement')?.value || 0);\n      const ctr = impressions > 0 ? (clicks / impressions * 100).toFixed(2) : '0.00';\n      const { action, couleur } = recommander(impressions, reach, clicks);\n      return { nom: c.campaign_name, impressions, reach, clics: clicks, interactions, spend, ctr, action, couleur };\n    }).sort((a, b) => b.impressions - a.impressions);\n  } catch (e) {\n    console.log(`Erreur insights pour ${ville.nom}:`, e.message);\n  }\n\n  let fbFollowers = null;\n  let igFollowers = null;\n  try {\n    if (ville.page_id) {\n      const pageUrl = `${BASE}/${ville.page_id}?fields=followers_count,instagram_business_account{followers_count}&access_token=${token}`;\n      const pageData = await get(pageUrl);\n      fbFollowers = pageData.followers_count ?? null;\n      igFollowers = pageData.instagram_business_account?.followers_count ?? null;\n    } else if (ville.ig_user_id) {\n      const igUrl = `${BASE}/${ville.ig_user_id}?fields=followers_count&access_token=${token}`;\n      const igData = await get(igUrl);\n      igFollowers = igData.followers_count ?? null;\n    }\n  } catch (e) {\n    console.log(`Erreur stats page pour ${ville.nom}:`, e.message);\n  }\n\n  const totalDepense = campagnesAnalysees.reduce((s, c) => s + c.spend, 0);\n  const budgetRestant = ville.budget_alloue - totalDepense;\n  const tauxDepense = totalDepense / ville.budget_alloue;\n\n  let actionBudget;\n  if (tauxDepense < 0.10) actionBudget = 'Depense tres faible - accelerer.';\n  else if (tauxDepense < 0.20) actionBudget = 'Depense en retard - accelerer.';\n  else if (tauxDepense > 0.80) actionBudget = 'Budget presque epuise - prevoir recharge.';\n  else actionBudget = 'Rythme de depense normal.';\n\n  let actionAudience;\n  if (igFollowers === null && !ville.ig_user_id) actionAudience = 'Creer le compte Instagram.';\n  else if ((igFollowers || 0) < 50) actionAudience = 'Audience IG tres faible - lancer un concours.';\n  else if ((fbFollowers || 0) + (igFollowers || 0) < 500) actionAudience = 'Audience faible - booster avec publicite.';\n  else actionAudience = 'Continuer la croissance.';\n\n  results.push({\n    ville: ville.nom,\n    campagnes: campagnesAnalysees,\n    audience: { fb: fbFollowers, ig: igFollowers, action: actionAudience },\n    budget: { alloue: ville.budget_alloue, depense: totalDepense, restant: budgetRestant, action: actionBudget },\n    email: config.email\n  });\n}\n\nreturn results.map(r => ({ json: r }));\n"
+      }
+    },
+    {
+      "id": "node-build-report",
+      "name": "Construire Rapport HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        360
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const villes = $input.all().map(i => i.json);\nconst emailDest = villes[0]?.email;\nconst dateStr = new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });\n\nconst fmt = n => (n != null ? Number(n).toLocaleString('fr-FR') : 'N/A');\nconst fmtEur = n => (n != null ? `${Number(n).toFixed(2).replace('.', ',')} EUR` : 'N/A');\n\nconst barPct = (depense, alloue) => {\n  const pct = Math.min(100, (depense / alloue * 100));\n  const color = pct > 80 ? '#dc2626' : pct > 50 ? '#f59e0b' : '#16a34a';\n  return `<div style=\"background:#e5e7eb;border-radius:4px;height:8px;width:100%;\"><div style=\"background:${color};width:${pct}%;height:8px;border-radius:4px;\"></div></div><span style=\"font-size:11px;color:#6b7280;\">${pct.toFixed(1)}%</span>`;\n};\n\nlet html = `<!DOCTYPE html>\n<html lang=\"fr\">\n<head><meta charset=\"UTF-8\"><title>Analyse Meta JOF/JMW</title></head>\n<body style=\"font-family:'Segoe UI',Arial,sans-serif;background:#f9fafb;margin:0;padding:20px;color:#1f2937;\">\n<div style=\"max-width:900px;margin:0 auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.1);\">\n  <div style=\"background:linear-gradient(135deg,#7c3aed,#5b21b6);padding:32px;color:white;\">\n    <h1 style=\"margin:0;font-size:24px;\">Analyse Performance Meta Ads</h1>\n    <p style=\"margin:8px 0 0;opacity:0.85;font-size:14px;\">Japan Otaku Festival / Japan Manga Wave - ${dateStr}</p>\n  </div>\n  <div style=\"display:flex;flex-wrap:wrap;gap:16px;padding:24px;background:#f8f5ff;border-bottom:1px solid #ede9fe;\">\n    ${villes.map(v => `<div style=\"flex:1;min-width:180px;background:white;border:1px solid #ede9fe;border-radius:8px;padding:16px;\">\n      <div style=\"font-weight:700;color:#7c3aed;font-size:16px;\">${v.ville}</div>\n      <div style=\"font-size:12px;color:#6b7280;margin-top:4px;\">${v.campagnes.length} campagne${v.campagnes.length > 1 ? 's' : ''}</div>\n      <div style=\"margin-top:8px;\">${barPct(v.budget.depense, v.budget.alloue)}</div>\n      <div style=\"font-size:12px;margin-top:4px;\">Depense: <b>${fmtEur(v.budget.depense)}</b> / ${fmtEur(v.budget.alloue)}</div>\n    </div>`).join('')}\n  </div>\n  <div style=\"padding:24px;\">`;\n\nfor (const v of villes) {\n  const stopCount = v.campagnes.filter(c => c.action.includes('Stopper')).length;\n  const boostCount = v.campagnes.filter(c => c.action.includes('Augmenter') || c.action.includes('Relancer')).length;\n\n  html += `\n  <div style=\"margin-bottom:40px;\">\n    <h2 style=\"color:#7c3aed;border-left:4px solid #7c3aed;padding-left:12px;margin-bottom:16px;\">${v.ville}</h2>\n    <table style=\"width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px;\">\n      <thead>\n        <tr style=\"background:#f3f4f6;\">\n          <th style=\"padding:10px 12px;text-align:left;border:1px solid #e5e7eb;\">Categorie</th>\n          <th style=\"padding:10px 12px;text-align:left;border:1px solid #e5e7eb;\">Donnees</th>\n          <th style=\"padding:10px 12px;text-align:left;border:1px solid #e5e7eb;\">Action a mener</th>\n        </tr>\n      </thead>\n      <tbody>\n        <tr>\n          <td style=\"padding:10px 12px;border:1px solid #e5e7eb;\">Audience</td>\n          <td style=\"padding:10px 12px;border:1px solid #e5e7eb;\">FB: ${fmt(v.audience.fb)} / IG: ${v.audience.ig != null ? fmt(v.audience.ig) : 'Pas de compte'}</td>\n          <td style=\"padding:10px 12px;border:1px solid #e5e7eb;color:#7c3aed;\">${v.audience.action}</td>\n        </tr>\n        <tr>\n          <td style=\"padding:10px 12px;border:1px solid #e5e7eb;\">Budget Alloue</td>\n          <td style=\"padding:10px 12px;border:1px solid #e5e7eb;\">${fmtEur(v.budget.alloue)}</td>\n          <td style=\"padding:10px 12px;border:1px solid #e5e7eb;\">-</td>\n        </tr>\n        <tr>\n          <td style=\"padding:10px 12px;border:1px solid #e5e7eb;\">Budget Depense</td>\n          <td style=\"padding:10px 12px;border:1px solid #e5e7eb;\">${fmtEur(v.budget.depense)}</td>\n          <td style=\"padding:10px 12px;border:1px solid #e5e7eb;color:${v.budget.depense/v.budget.alloue < 0.15 ? '#dc2626' : '#374151'}\">${v.budget.action}</td>\n        </tr>\n        <tr>\n          <td style=\"padding:10px 12px;border:1px solid #e5e7eb;\">Budget Restant</td>\n          <td style=\"padding:10px 12px;border:1px solid #e5e7eb;\">${fmtEur(v.budget.restant)}</td>\n          <td style=\"padding:10px 12px;border:1px solid #e5e7eb;\">-</td>\n        </tr>\n      </tbody>\n    </table>\n    ${stopCount > 0 || boostCount > 0 ? `<div style=\"display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;\">\n      ${stopCount > 0 ? `<div style=\"background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:8px 12px;font-size:13px;color:#dc2626;\">${stopCount} campagne${stopCount > 1 ? 's' : ''} a stopper</div>` : ''}\n      ${boostCount > 0 ? `<div style=\"background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:8px 12px;font-size:13px;color:#16a34a;\">${boostCount} campagne${boostCount > 1 ? 's' : ''} a booster</div>` : ''}\n    </div>` : ''}\n    <table style=\"width:100%;border-collapse:collapse;font-size:12px;\">\n      <thead>\n        <tr style=\"background:#7c3aed;color:white;\">\n          <th style=\"padding:10px 12px;text-align:left;border:1px solid #6d28d9;\">Campagne</th>\n          <th style=\"padding:10px 12px;border:1px solid #6d28d9;\">Vues</th>\n          <th style=\"padding:10px 12px;border:1px solid #6d28d9;\">Couverture</th>\n          <th style=\"padding:10px 12px;border:1px solid #6d28d9;\">Clics</th>\n          <th style=\"padding:10px 12px;border:1px solid #6d28d9;\">CTR</th>\n          <th style=\"padding:10px 12px;border:1px solid #6d28d9;\">Interactions</th>\n          <th style=\"padding:10px 12px;border:1px solid #6d28d9;\">Depense</th>\n          <th style=\"padding:10px 12px;text-align:left;border:1px solid #6d28d9;\">Action</th>\n        </tr>\n      </thead>\n      <tbody>\n        ${v.campagnes.map((c, i) => `<tr style=\"background:${i%2===0?'white':'#f9fafb'}\">\n          <td style=\"padding:10px 12px;border:1px solid #e5e7eb;font-weight:500;\">${c.nom}</td>\n          <td style=\"padding:10px 12px;border:1px solid #e5e7eb;text-align:center;\">${fmt(c.impressions)}</td>\n          <td style=\"padding:10px 12px;border:1px solid #e5e7eb;text-align:center;\">${fmt(c.reach)}</td>\n          <td style=\"padding:10px 12px;border:1px solid #e5e7eb;text-align:center;\">${fmt(c.clics)}</td>\n          <td style=\"padding:10px 12px;border:1px solid #e5e7eb;text-align:center;\">${c.ctr}%</td>\n          <td style=\"padding:10px 12px;border:1px solid #e5e7eb;text-align:center;\">${fmt(c.interactions)}</td>\n          <td style=\"padding:10px 12px;border:1px solid #e5e7eb;text-align:center;\">${fmtEur(c.spend)}</td>\n          <td style=\"padding:10px 12px;border:1px solid #e5e7eb;color:${c.couleur};font-weight:600;\">${c.action}</td>\n        </tr>`).join('')}\n      </tbody>\n    </table>\n  </div>`;\n}\n\nhtml += `\n  </div>\n  <div style=\"background:#f3f4f6;padding:16px 24px;font-size:11px;color:#9ca3af;text-align:center;\">Genere automatiquement par OpsFlow - ${new Date().toISOString()}</div>\n</div>\n</body></html>`;\n\nconst subject = `[JOF/JMW] Analyse Meta Ads - ${new Date().toLocaleDateString('fr-FR')}`;\nreturn [{ json: { html, subject, email: emailDest } }];\n"
+      }
+    },
+    {
+      "id": "node-send-email",
+      "name": "Envoyer Rapport Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        980,
+        360
+      ],
+      "parameters": {
+        "fromEmail": "opsflow@shurikeneven.com",
+        "toEmail": "={{ $json.email }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Recuperer et Analyser Meta": {
+      "main": [
+        [
+          {
+            "node": "Construire Rapport HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construire Rapport HTML": {
+      "main": [
+        [
+          {
+            "node": "Envoyer Rapport Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuration": {
+      "main": [
+        [
+          {
+            "node": "Recuperer et Analyser Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Demarrage Manuel": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Declencheur Hebdomadaire": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null
+}

@@ -54,6 +54,8 @@ model Employe {
   journalAcces           JournalAcces[]
   evaluations            EvaluationSalaire[]
   memos      Memo[]   @relation("MemoAuteur")
+  liensCreees    LienImportant[] @relation("LienImportantAuteur")
+  liensModifies  LienImportant[] @relation("LienImportantModifiePar")
 }
 
 model Licence {
@@ -133,6 +135,7 @@ model Tache {
   statutTache    StatutTache  @relation(fields: [statutTacheId], references: [id])
   themePub       Theme?       @relation("ThemePublication", fields: [themePubId], references: [id])
   themeSponso    Theme?       @relation("ThemeSponsorisation", fields: [themeSponsoId], references: [id])
+  aVerifier      Boolean      @default(false)
   demandes       DemandeTache[]
   entreesJournal EntreeJournal[]
   tachesLues     TacheLue[]
@@ -298,7 +301,7 @@ model TacheLue {
 
 model NotificationEmploye {
   id        String   @id @default(uuid())
-  type      String   // NOUVELLE_TACHE | COMMENTAIRE | REGLEMENT
+  type      String   // NOUVELLE_TACHE | COMMENTAIRE | REGLEMENT | A_MODIFIER
   message   String
   lue       Boolean  @default(false)
   refId     String?
@@ -338,4 +341,18 @@ model GroupeJournal {
   nom       String
   createdAt DateTime  @default(now())
   journaux  Journal[]
+}
+
+model LienImportant {
+  id           String    @id @default(uuid())
+  titre        String
+  description  String?   @db.Text
+  url          String
+  auteurId     String
+  auteur       Employe   @relation("LienImportantAuteur", fields: [auteurId], references: [id], onDelete: Cascade)
+  modifieParId String?
+  modifiePar   Employe?  @relation("LienImportantModifiePar", fields: [modifieParId], references: [id], onDelete: SetNull)
+  modifieLeAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }

@@ -161,3 +161,25 @@ CREATE TABLE IF NOT EXISTS "GroupeJournal" (
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 ALTER TABLE "Journal" ADD COLUMN IF NOT EXISTS "groupeId" TEXT REFERENCES "GroupeJournal"("id") ON DELETE SET NULL;
+
+-- ============================================================
+-- Migration V6 : vérification des tâches + liens importants
+-- ============================================================
+
+-- aVerifier flag sur Tache (l'employé soumet pour validation admin)
+ALTER TABLE "Tache" ADD COLUMN IF NOT EXISTS "aVerifier" BOOLEAN NOT NULL DEFAULT false;
+
+-- Table LienImportant (liens partagés par toute l'équipe)
+CREATE TABLE IF NOT EXISTS "LienImportant" (
+  "id"           TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  "titre"        TEXT NOT NULL,
+  "description"  TEXT,
+  "url"          TEXT NOT NULL,
+  "auteurId"     TEXT NOT NULL,
+  "modifieParId" TEXT,
+  "modifieLeAt"  TIMESTAMP(3),
+  "createdAt"    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt"    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "LienImportant_auteurId_fkey"     FOREIGN KEY ("auteurId")     REFERENCES "Employe"("id") ON DELETE CASCADE,
+  CONSTRAINT "LienImportant_modifieParId_fkey" FOREIGN KEY ("modifieParId") REFERENCES "Employe"("id") ON DELETE SET NULL
+);

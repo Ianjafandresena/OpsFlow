@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
       },
       include: {
         tache: {
-          select: { id: true, titre: true, lien_livrable: true, statutTache: { select: { libelle: true } } }
+          select: { id: true, titre: true, lien_livrable: true, aVerifier: true, statutTache: { select: { libelle: true } } }
         },
         editeur: { select: { id: true, nom: true, prenom: true } },
         commentaires: {
@@ -52,8 +52,7 @@ export default defineEventHandler(async (event) => {
       }
     })
 
-    // Auto-sync : for single-date queries, ensure all tasks created on that date
-    // for journal members are visible (creates missing entries on the fly)
+    // Auto-sync + rollover for single-date queries
     if (dateStr) {
       try {
         const journal = await prisma.journal.findUnique({
@@ -87,54 +86,113 @@ export default defineEventHandler(async (event) => {
             }
           })
 
-          if (tasksToAdd.length > 0) {
-            const allSlots = buildTimeSlots()
-            // Track used slots per employee (real entries + newly created)
-            const usedSlotsByEmp: Record<string, Set<string>> = {}
-            for (const e of entrees) {
-              if (!usedSlotsByEmp[e.employeId]) usedSlotsByEmp[e.employeId] = new Set()
-              usedSlotsByEmp[e.employeId].add(e.heure)
+          const allSlots = buildTimeSlots()
+          // Track used slots per employee (real entries + newly created)
+          const usedSlotsByEmp: Record<string, Set<string>> = {}
+          for (const e of entrees) {
+            if (!usedSlotsByEmp[e.employeId]) usedSlotsByEmp[e.employeId] = new Set()
+            usedSlotsByEmp[e.employeId].add(e.heure)
+          }
+
+          // Auto-sync: tâches créées ce jour mais sans entrée journal
+          for (const task of tasksToAdd) {
+            const used = usedSlotsByEmp[task.employeId] || new Set<string>()
+            const taskDate = new Date(task.createdAt)
+            const taskSlotStr = `${String(taskDate.getUTCHours()).padStart(2, '0')}:${taskDate.getUTCMinutes() < 30 ? '00' : '30'}`
+            const startIdx = Math.max(0, allSlots.indexOf(taskSlotStr))
+            const ordered = [...allSlots.slice(startIdx), ...allSlots.slice(0, startIdx)]
+            const targetSlot = ordered.find(s => !used.has(s)) || taskSlotStr
+
+            const isTermine = (task.statutTache?.libelle || '').toLowerCase().includes('termin') ||
+              (task.statutTache?.libelle || '').toLowerCase().includes('publi')
+
+            try {
+              const newEntry = await prisma.entreeJournal.create({
+                data: {
+                  journalId,
+                  employeId: task.employeId,
+                  date: viewDate,
+                  heure: targetSlot,
+                  contenu: task.titre,
+                  tacheId: task.id,
+                  tacheTerminee: isTermine,
+                  lien: task.lien_livrable || null
+                },
+                include: {
+                  tache: { select: { id: true, titre: true, lien_livrable: true, aVerifier: true, statutTache: { select: { libelle: true } } } },
+                  editeur: { select: { id: true, nom: true, prenom: true } },
+                  commentaires: { orderBy: { createdAt: 'asc' } }
+                }
+              })
+              entrees.push(newEntry)
+              if (!usedSlotsByEmp[task.employeId]) usedSlotsByEmp[task.employeId] = new Set()
+              usedSlotsByEmp[task.employeId].add(targetSlot)
+            } catch (createErr: any) {
+              // P2002 = unique constraint: slot already taken (race condition) — skip
+              if (createErr?.code !== 'P2002') {
+                console.error('Auto-sync journal entry error for task', task.id, createErr)
+              }
             }
+          }
 
-            for (const task of tasksToAdd) {
-              const used = usedSlotsByEmp[task.employeId] || new Set<string>()
-              const taskDate = new Date(task.createdAt)
-              const taskSlotStr = `${String(taskDate.getUTCHours()).padStart(2, '0')}:${taskDate.getUTCMinutes() < 30 ? '00' : '30'}`
-              const startIdx = Math.max(0, allSlots.indexOf(taskSlotStr))
+          // Rollover : tâches des jours précédents non encore terminées
+          try {
+            const previousUnfinished = await prisma.entreeJournal.findMany({
+              where: {
+                journalId,
+                employeId: { in: memberIds },
+                date: { lt: viewDate },
+                tacheId: { not: null },
+                tacheTerminee: false
+              },
+              orderBy: [{ date: 'desc' }],
+              include: {
+                tache: { select: { id: true, titre: true, lien_livrable: true, aVerifier: true, statutTache: { select: { libelle: true } } } }
+              }
+            })
+            // Garder la plus récente entrée par tacheId (trié par date desc)
+            const seen = new Set<string>()
+            const latestPerTache = previousUnfinished.filter(e => {
+              if (e.tacheId && !seen.has(e.tacheId)) { seen.add(e.tacheId); return true }
+              return false
+            })
+            // Filtrer celles qui ont déjà une entrée aujourd'hui
+            const tacheIdsToday = new Set(entrees.filter(e => e.tacheId).map(e => e.tacheId))
+            const toRollover = latestPerTache.filter(e => !tacheIdsToday.has(e.tacheId))
+
+            for (const prev of toRollover) {
+              const used = usedSlotsByEmp[prev.employeId] || new Set<string>()
+              const startIdx = Math.max(0, allSlots.indexOf(prev.heure))
               const ordered = [...allSlots.slice(startIdx), ...allSlots.slice(0, startIdx)]
-              const targetSlot = ordered.find(s => !used.has(s)) || taskSlotStr
-
-              const isTermine = (task.statutTache?.libelle || '').toLowerCase().includes('termin') ||
-                (task.statutTache?.libelle || '').toLowerCase().includes('publi')
+              const targetSlot = ordered.find(s => !used.has(s)) || prev.heure
 
               try {
-                const newEntry = await prisma.entreeJournal.create({
+                const rolled = await prisma.entreeJournal.create({
                   data: {
                     journalId,
-                    employeId: task.employeId,
+                    employeId: prev.employeId,
                     date: viewDate,
                     heure: targetSlot,
-                    contenu: task.titre,
-                    tacheId: task.id,
-                    tacheTerminee: isTermine,
-                    lien: task.lien_livrable || null
+                    contenu: prev.contenu,
+                    tacheId: prev.tacheId,
+                    tacheTerminee: false,
+                    lien: prev.lien || null
                   },
                   include: {
-                    tache: { select: { id: true, titre: true, lien_livrable: true, statutTache: { select: { libelle: true } } } },
+                    tache: { select: { id: true, titre: true, lien_livrable: true, aVerifier: true, statutTache: { select: { libelle: true } } } },
                     editeur: { select: { id: true, nom: true, prenom: true } },
                     commentaires: { orderBy: { createdAt: 'asc' } }
                   }
                 })
-                entrees.push(newEntry)
-                if (!usedSlotsByEmp[task.employeId]) usedSlotsByEmp[task.employeId] = new Set()
-                usedSlotsByEmp[task.employeId].add(targetSlot)
-              } catch (createErr: any) {
-                // P2002 = unique constraint: slot already taken (race condition) — skip
-                if (createErr?.code !== 'P2002') {
-                  console.error('Auto-sync journal entry error for task', task.id, createErr)
-                }
+                entrees.push(rolled as any)
+                if (!usedSlotsByEmp[prev.employeId]) usedSlotsByEmp[prev.employeId] = new Set()
+                usedSlotsByEmp[prev.employeId].add(targetSlot)
+              } catch (e: any) {
+                if (e?.code !== 'P2002') console.error('Rollover error for tache', prev.tacheId, e)
               }
             }
+          } catch (rolloverErr) {
+            console.error('Rollover global error:', rolloverErr)
           }
         }
       } catch (syncErr) {
