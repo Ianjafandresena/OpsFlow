@@ -39,7 +39,9 @@ export default defineEventHandler(async (event) => {
             evaluation_type: entree.evaluation_type !== undefined ? entree.evaluation_type : undefined,
             evaluation_montant: entree.evaluation_montant !== undefined ? entree.evaluation_montant : undefined,
             editeurId: entree.editeurId !== undefined ? entree.editeurId : undefined,
-            tacheTerminee: entree.tacheTerminee !== undefined ? entree.tacheTerminee : undefined
+            tacheTerminee: entree.tacheTerminee !== undefined ? entree.tacheTerminee : undefined,
+            aVerifier: entree.aVerifier !== undefined ? entree.aVerifier : undefined,
+            motifModification: entree.motifModification !== undefined ? entree.motifModification : undefined
           },
           create: {
             journalId,
@@ -55,7 +57,9 @@ export default defineEventHandler(async (event) => {
             evaluation_type: entree.evaluation_type,
             evaluation_montant: entree.evaluation_montant,
             editeurId: entree.editeurId || null,
-            tacheTerminee: entree.tacheTerminee || false
+            tacheTerminee: entree.tacheTerminee || false,
+            aVerifier: entree.aVerifier || false,
+            motifModification: entree.motifModification || null
           }
         })
       })

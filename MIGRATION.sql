@@ -171,6 +171,12 @@ ALTER TABLE "Tache" ADD COLUMN IF NOT EXISTS "aVerifier" BOOLEAN NOT NULL DEFAUL
 -- motifModification : motif de retour admin (À modifier flow)
 ALTER TABLE "Tache" ADD COLUMN IF NOT EXISTS "motifModification" TEXT;
 
+-- ============================================================
+-- Migration V7 : aVerifier + motifModification sur EntreeJournal (entrées manuelles)
+-- ============================================================
+ALTER TABLE "EntreeJournal" ADD COLUMN IF NOT EXISTS "aVerifier" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "EntreeJournal" ADD COLUMN IF NOT EXISTS "motifModification" TEXT;
+
 -- Table LienImportant (liens partagés par toute l'équipe)
 CREATE TABLE IF NOT EXISTS "LienImportant" (
   "id"           TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
