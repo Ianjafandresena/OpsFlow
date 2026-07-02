@@ -9,10 +9,10 @@ export default defineEventHandler(async (event) => {
 
     const journals = await prisma.journal.findMany({
       include: {
-        employe1: { select: { id: true, nom: true, prenom: true, salaire_base: true } },
-        employe2: { select: { id: true, nom: true, prenom: true } },
-        employe3: { select: { id: true, nom: true, prenom: true } },
-        employe4: { select: { id: true, nom: true, prenom: true } },
+        employe1: { select: { id: true, nom: true, prenom: true, salaire_base: true, role: { select: { niveau_acces: true } } } },
+        employe2: { select: { id: true, nom: true, prenom: true, role: { select: { niveau_acces: true } } } },
+        employe3: { select: { id: true, nom: true, prenom: true, role: { select: { niveau_acces: true } } } },
+        employe4: { select: { id: true, nom: true, prenom: true, role: { select: { niveau_acces: true } } } },
         editions: {
           include: {
             edition: {

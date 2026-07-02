@@ -228,6 +228,7 @@ model EntreeJournal {
   lien              String?
   recherches        String?  @db.Text
   heure_affichage   String?
+  heure_fin         String?
   evaluation_type   String?
   evaluation_montant Float?
   reportee          Boolean   @default(false)

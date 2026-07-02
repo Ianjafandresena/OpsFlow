@@ -78,7 +78,11 @@
             <tbody>
               <tr v-for="slot in timeSlots" :key="slot" :class="{ 'current-time-row': isCurrentSlot(slot) }">
                 <td class="time-cell">{{ slot }}</td>
-                <td v-for="emp in journalMembres" :key="emp.id" class="entry-cell" :class="emp.id===myEmployeId?'entry-cell-mine':'entry-cell-partner'">
+                <template v-for="emp in journalMembres" :key="emp.id">
+                <td v-if="!coveredSlots[emp.id]?.has(slot)"
+                    :rowspan="getRowspan(emp.id, slot)"
+                    class="entry-cell"
+                    :class="[emp.id===myEmployeId?'entry-cell-mine':'entry-cell-partner', getRowspan(emp.id,slot)>1?'entry-cell-merged':'']">
                   <div class="cell-wrapper" v-if="localGrid[emp.id] && localGrid[emp.id][slot]!==undefined">
                     <!-- Auto task entry (read-only display) -->
                     <div v-if="getEntryRaw(emp.id, slot)?.tacheId && !isEditing(emp.id, slot)"
@@ -204,6 +208,7 @@
                     </div>
                   </div>
                 </td>
+                </template>
               </tr>
             </tbody>
           </table>
@@ -337,6 +342,15 @@
             <div class="form-group">
               <label class="form-label" style="color:var(--accent-primary);">Description de l'activité</label>
               <textarea v-model="modalGridCell.contenu" class="form-input" rows="3" placeholder="Ex: Rédaction du rapport..." style="resize:vertical;"></textarea>
+            </div>
+
+            <!-- Durée (heure_fin) -->
+            <div class="form-group">
+              <label class="form-label" style="color:var(--accent-primary);">Durée — jusqu'à <span style="font-size:0.7rem; color:var(--text-muted);">(facultatif, 30 min par défaut)</span></label>
+              <select v-model="modalGridCell.heure_fin" class="form-input" style="max-width:150px;">
+                <option value="">— 30 min —</option>
+                <option v-for="s in slotsAfter(activeSlot)" :key="s" :value="s">{{ s }}</option>
+              </select>
             </div>
 
             <!-- Heure affichage (only for Ianja/Ando/Djibril) -->
@@ -513,7 +527,7 @@ const activeSlot = ref(null)
 const activeDate = ref(null)
 const chatMessages = ref([])
 const newEmpMsg = ref('')
-const modalGridCell = ref({ contenu: '', commentaire: '', lien: '', recherches: '', heure_affichage: '' })
+const modalGridCell = ref({ contenu: '', commentaire: '', lien: '', recherches: '', heure_affichage: '', heure_fin: '' })
 const legacyEmployeeMsg = ref('')
 const legacyAdminMsg = ref('')
 
@@ -569,6 +583,37 @@ const weekDays = computed(() => {
 
 // --- Helpers ---
 const initials = (emp) => emp ? `${(emp.prenom||'').charAt(0)}${(emp.nom||'').charAt(0)}`.toUpperCase() : '?'
+
+// Duration helpers
+const slotsAfter = (slot) => {
+  if (!slot) return []
+  const idx = timeSlots.indexOf(slot)
+  return idx >= 0 ? timeSlots.slice(idx + 1) : []
+}
+const getRowspan = (empId, slot) => {
+  const entry = getEntryRaw(empId, slot)
+  if (!entry?.heure_fin) return 1
+  const startIdx = timeSlots.indexOf(slot)
+  const endIdx = timeSlots.indexOf(entry.heure_fin)
+  return endIdx > startIdx ? endIdx - startIdx : 1
+}
+const coveredSlots = computed(() => {
+  const result = {}
+  for (const emp of journalMembres.value) {
+    result[emp.id] = new Set()
+    for (const slot of timeSlots) {
+      const entry = getEntryRaw(emp.id, slot)
+      if (entry?.heure_fin) {
+        const startIdx = timeSlots.indexOf(slot)
+        const endIdx = timeSlots.indexOf(entry.heure_fin)
+        for (let i = startIdx + 1; i < endIdx; i++) {
+          result[emp.id].add(timeSlots[i])
+        }
+      }
+    }
+  }
+  return result
+})
 const isCurrentSlot = (slot) => {
   if (selectedDate.value!==today) return false
   const now=new Date()
@@ -660,7 +705,7 @@ const buildLocalGrid = () => {
       grid[emp.id] = {}
       timeSlots.forEach(slot => {
         const e = getEntryRaw(emp.id, slot)
-        grid[emp.id][slot] = { contenu: e?.contenu||'', commentaire: e?.commentaire||'', lien: e?.lien||'', recherches: e?.recherches||'', heure_affichage: e?.heure_affichage||'', tacheTerminee: e?.tacheTerminee||false }
+        grid[emp.id][slot] = { contenu: e?.contenu||'', commentaire: e?.commentaire||'', lien: e?.lien||'', recherches: e?.recherches||'', heure_affichage: e?.heure_affichage||'', heure_fin: e?.heure_fin||'', tacheTerminee: e?.tacheTerminee||false }
       })
       const remarkEntry = entries.value.find(e=>e.employeId===emp.id && e.heure==='REMARQUES')
       remarks[emp.id] = remarkEntry?.contenu||''
@@ -747,7 +792,7 @@ const openEntryModal = (empId, slot, date=null) => {
   viewedEntries.value[`${empId}-${slot}-${date||selectedDate.value}`] = true
   const key = viewMode.value==='journalier' ? empId : date
   const cell = localGrid.value[key]?.[slot]
-  modalGridCell.value = { contenu: cell?.contenu||'', commentaire: cell?.commentaire||'', lien: cell?.lien||'', recherches: cell?.recherches||'', heure_affichage: cell?.heure_affichage||'' }
+  modalGridCell.value = { contenu: cell?.contenu||'', commentaire: cell?.commentaire||'', lien: cell?.lien||'', recherches: cell?.recherches||'', heure_affichage: cell?.heure_affichage||'', heure_fin: cell?.heure_fin||'' }
   const entryRaw = getEntryRaw(empId, slot, date)
   legacyEmployeeMsg.value = entryRaw?.commentaire||''
   legacyAdminMsg.value = entryRaw?.admin_commentaire||''
@@ -916,6 +961,7 @@ const saveEntries = async () => {
               contenu: cell.contenu.trim(), commentaire: cell.commentaire.trim(),
               lien: cell.lien.trim(), recherches: cell.recherches.trim(),
               heure_affichage: cell.heure_affichage||null,
+              heure_fin: cell.heure_fin||null,
               tacheTerminee: cell.tacheTerminee||false
             })
           }
@@ -979,6 +1025,7 @@ const saveEntries = async () => {
 .journal-table th { background:var(--bg-surface-hover); padding:0.75rem 1rem; text-align:left; font-weight:600; border-bottom:2px solid var(--border-light); white-space:nowrap; }
 .time-col { width:70px; }
 .entry-col { min-width:160px; }
+.entry-cell-merged { vertical-align:top; border-left:3px solid var(--accent-primary); }
 
 .col-header { display:flex; align-items:center; gap:0.5rem; font-size:0.8125rem; }
 .col-me { color:var(--accent-primary); }

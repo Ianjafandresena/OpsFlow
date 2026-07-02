@@ -37,6 +37,9 @@
             <input v-model="searchJournal" type="text" placeholder="Rechercher un journal..." class="form-input" style="padding-left:1.75rem; font-size:0.8rem; height:2rem;" />
           </div>
         </div>
+        <div style="display:flex; gap:0.25rem; padding:0.4rem 0.75rem; border-bottom:1px solid var(--border-light); flex-wrap:wrap;">
+          <button v-for="f in posteFilters" :key="f.value" class="btn btn-sm" :class="filterPoste===f.value?'btn-primary':'btn-secondary'" style="font-size:0.7rem; padding:0.2rem 0.5rem;" @click="filterPoste=f.value">{{ f.label }}</button>
+        </div>
         <div v-if="loadingJournals" class="loading-state">
           <div class="spinner-sm"></div><span>Chargement...</span>
         </div>
@@ -1399,11 +1402,31 @@ const deleteJournal = async () => {
   finally { deletingJournal.value = false }
 }
 
-// --- Search ---
+// --- Search & filters ---
 const searchJournal = ref('')
+const filterPoste = ref('TOUS')
+
+const posteFilters = [
+  { value: 'TOUS',    label: 'Tous' },
+  { value: 'CM',      label: 'CM' },
+  { value: 'DEV',     label: 'Développeur' },
+  { value: 'CONTAIN', label: 'Contain' }
+]
+
+const matchesPosteFilter = (j) => {
+  if (filterPoste.value === 'TOUS') return true
+  const emps = [j.employe1, j.employe2, j.employe3, j.employe4].filter(Boolean)
+  return emps.some(e => {
+    const role = e.role?.niveau_acces
+    if (filterPoste.value === 'CM')      return role === 'CM'
+    if (filterPoste.value === 'DEV')     return role === 'DEV'
+    if (filterPoste.value === 'CONTAIN') return role === 'DESIGNER' || role === 'MONTEUR'
+    return true
+  })
+}
 
 const filteredJournals = computed(() => {
-  const base = journals.value.filter(j => !j.groupeId)
+  let base = journals.value.filter(j => !j.groupeId).filter(matchesPosteFilter)
   if (!searchJournal.value.trim()) return base
   const q = searchJournal.value.toLowerCase().trim()
   return base.filter(j => {
@@ -1656,9 +1679,13 @@ const groupesOuverts = ref({})
 const toggleGroupe = (gId) => { groupesOuverts.value = { ...groupesOuverts.value, [gId]: !groupesOuverts.value[gId] } }
 
 const groupesFiltres = computed(() => {
-  if (!searchJournal.value.trim()) return groupes.value
+  let base = groupes.value
+  if (filterPoste.value !== 'TOUS') {
+    base = base.filter(g => g.journaux.some(matchesPosteFilter))
+  }
+  if (!searchJournal.value.trim()) return base
   const q = searchJournal.value.toLowerCase().trim()
-  return groupes.value.filter(g =>
+  return base.filter(g =>
     g.nom.toLowerCase().includes(q) ||
     g.journaux.some(j => {
       if (j.nom?.toLowerCase().includes(q)) return true
