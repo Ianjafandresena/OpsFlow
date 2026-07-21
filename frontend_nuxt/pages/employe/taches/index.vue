@@ -25,6 +25,7 @@
         <option value="en_cours">En cours</option>
         <option value="termine">Terminé</option>
         <option value="en_retard">En retard</option>
+        <option value="urgent">⚠ Urgent</option>
       </select>
     </div>
 
@@ -44,6 +45,7 @@
           <tr v-for="task in filteredTasks" :key="task.id">
             <td>
               <div style="display:flex; align-items:center; gap:0.5rem;">
+                <span v-if="task.urgent" class="urgent-badge">⚠ URGENT</span>
                 <span style="font-weight:600;">{{ task.titre }}</span>
                 <span v-if="tachesLues.has(task.id)" class="lu-badge">Lu</span>
               </div>
@@ -534,22 +536,28 @@ const form = ref(defaultForm())
 
 const filteredTasks = computed(() => {
   if (!taches.value) return []
-  return taches.value.filter(t => { 
+  return taches.value.filter(t => {
     if (filters.value.search && !t.titre.toLowerCase().includes(filters.value.search.toLowerCase()) && !t.description?.toLowerCase().includes(filters.value.search.toLowerCase())) return false
     if (filters.value.editionId && t.editionId !== filters.value.editionId) return false
-    
+
     const isTermine = t.statutTache?.nom === 'Terminé' || t.statutTache?.libelle === 'Terminé' || t.statutTache?.nom === 'Publié' || t.statutTache?.libelle === 'Publié';
     const isRetard = !isTermine && new Date(t.date_limite) < new Date();
-    
+
     if (filters.value.customStatus === 'en_cours') {
       if (isTermine || isRetard) return false;
     } else if (filters.value.customStatus === 'termine') {
       if (!isTermine) return false;
     } else if (filters.value.customStatus === 'en_retard') {
       if (!isRetard) return false;
+    } else if (filters.value.customStatus === 'urgent') {
+      if (!t.urgent) return false;
     }
-    
+
     return true
+  }).sort((a, b) => {
+    if (a.urgent && !b.urgent) return -1
+    if (!a.urgent && b.urgent) return 1
+    return 0
   })
 })
 
@@ -805,5 +813,18 @@ const submitDemande = async () => {
   border-radius: 99px;
   border: 1px solid #10b98130;
   flex-shrink: 0;
+}
+.urgent-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #ef444415;
+  color: #dc2626;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: 99px;
+  border: 1px solid #ef444440;
+  flex-shrink: 0;
+  letter-spacing: 0.03em;
 }
 </style>

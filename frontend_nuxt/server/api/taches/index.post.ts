@@ -68,7 +68,8 @@ export default defineEventHandler(async (event) => {
     date_resultat: body.date_resultat ? new Date(body.date_resultat) : null,
     outil_mailing: body.outil_mailing,
     demandeur: body.demandeur,
-    lien_livrable: body.lien_livrable
+    lien_livrable: body.lien_livrable,
+    urgent: body.urgent === true || body.urgent === 'true'
   }
 
   // --- Helpers ---
