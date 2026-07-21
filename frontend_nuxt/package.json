@@ -7,9 +7,11 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
+    "postinstall": "prisma generate",
     "start": "node .output/server/index.mjs",
     "build:prod": "chmod -R +x node_modules/.bin && npx prisma generate && npx prisma db push && nuxt build",
     "db:migrate": "npx prisma migrate deploy",
+    "db:push": "npx prisma db push",
     "db:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
