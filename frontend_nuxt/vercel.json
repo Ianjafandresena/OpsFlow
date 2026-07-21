@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx prisma generate && npx nuxt build",
+  "buildCommand": "chmod -R 755 node_modules/.bin && npx prisma generate && npx nuxt build",
   "installCommand": "npm install",
   "framework": "nuxtjs"
 }

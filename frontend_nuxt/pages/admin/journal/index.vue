@@ -228,10 +228,12 @@
                           'entry-auto': getEntry(emp.id, slot)?.tacheId,
                           'entry-done': getEntry(emp.id, slot)?.tacheTerminee,
                           'entry-verif': entryIsVerif(getEntry(emp.id, slot)),
-                          'entry-a-modifier': entryIsModifier(getEntry(emp.id, slot))
+                          'entry-a-modifier': entryIsModifier(getEntry(emp.id, slot)),
+                          'entry-urgent': getEntry(emp.id, slot)?.urgent || getEntry(emp.id, slot)?.tache?.urgent
                         }">
                         <div style="display:flex; justify-content:space-between; width:100%; align-items:flex-start; gap:0.25rem;">
                           <div style="flex:1; min-width:0;">
+                            <span v-if="getEntry(emp.id, slot)?.urgent || getEntry(emp.id, slot)?.tache?.urgent" class="entry-urgent-badge">⚠ URGENT</span>
                             <span v-if="getEntry(emp.id, slot)?.tacheId" class="entry-auto-badge"><CheckIcon :size="10" /> Tâche</span>
                             <span v-if="getEntry(emp.id, slot)?.tacheTerminee" class="entry-done-badge">✓ Terminée</span>
                             <span v-else-if="entryIsVerif(getEntry(emp.id, slot))" class="entry-verif-badge">⏳ À vérifier</span>
@@ -246,6 +248,12 @@
                             </div>
                           </div>
                           <div class="entry-action-row">
+                            <button
+                              class="icon-btn-view"
+                              :style="(getEntry(emp.id, slot)?.urgent) ? 'color:#dc2626;' : ''"
+                              @click.stop="toggleEntreeUrgent(getEntry(emp.id, slot))"
+                              :title="getEntry(emp.id, slot)?.urgent ? 'Retirer urgent' : 'Marquer urgent'"
+                            ><AlertTriangleIcon :size="12" /></button>
                             <button class="icon-btn-view comment-icon-btn" :class="{ 'has-comments': msgCount(emp.id, slot) > 0 }" @click="openEntryModal(emp.id, slot)" :title="msgCount(emp.id,slot)+' message(s)'">
                               <MessageSquareIcon :size="13" />
                               <span v-if="msgCount(emp.id, slot) > 0" class="comment-badge">{{ msgCount(emp.id, slot) }}</span>
@@ -885,6 +893,7 @@ import {
   BookOpen as BookOpenIcon, Plus as PlusIcon, ChevronRight as ChevronRightIcon,
   ChevronLeft as ChevronLeftIcon, ChevronDown as ChevronDownIcon, ChevronUp as ChevronUpIcon,
   X as XIcon, Check as CheckIcon,
+  AlertTriangle as AlertTriangleIcon,
   Link as LinkIcon, MessageSquare as MessageSquareIcon, Menu as MenuIcon,
   Edit as EditIcon, Save as SaveIcon, Trash as TrashIcon,
   Send as SendIcon, Mail as MailIcon,
@@ -1191,6 +1200,12 @@ const loadEmployes = async () => {
 const loadEditions = async () => {
   try { editions.value = await $fetch('/api/editions') }
   catch (e) { console.error(e) }
+}
+
+const toggleEntreeUrgent = async (entry: any) => {
+  if (!entry) return
+  await $fetch(`/api/entrees/${entry.id}/urgent`, { method: 'POST' })
+  await loadEntries()
 }
 
 const loadEntries = async () => {
@@ -1779,6 +1794,8 @@ const groupesFiltres = computed(() => {
 .entry-done { background:#10b98110 !important; border-color:#10b98140 !important; }
 .entry-verif { background:#f59e0b10 !important; border-color:#f59e0b40 !important; }
 .entry-a-modifier { background:#ef444410 !important; border-color:#ef444440 !important; }
+.entry-urgent { background:#dc262610 !important; border-color:#dc262640 !important; border-left:3px solid #dc2626 !important; }
+.entry-urgent-badge { display:inline-flex;align-items:center;gap:0.15rem;background:#dc2626;color:white;font-size:0.6rem;font-weight:700;padding:0.1rem 0.35rem;border-radius:99px;flex-shrink:0;margin-right:0.25rem; }
 .entry-done-badge { display:inline-flex;align-items:center;gap:0.15rem;background:#10b981;color:white;font-size:0.6rem;font-weight:700;padding:0.1rem 0.35rem;border-radius:99px;flex-shrink:0;margin-right:0.25rem; }
 .entry-verif-badge { display:inline-flex;align-items:center;gap:0.15rem;background:#f59e0b;color:white;font-size:0.6rem;font-weight:700;padding:0.1rem 0.35rem;border-radius:99px;flex-shrink:0;margin-right:0.25rem; }
 .entry-modifier-badge { display:inline-flex;align-items:center;gap:0.15rem;background:#ef4444;color:white;font-size:0.6rem;font-weight:700;padding:0.1rem 0.35rem;border-radius:99px;flex-shrink:0;margin-right:0.25rem; }
