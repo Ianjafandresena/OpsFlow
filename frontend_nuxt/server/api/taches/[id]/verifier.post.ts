@@ -9,5 +9,22 @@ export default defineEventHandler(async (event) => {
     include: { employe: { select: { nom: true, prenom: true } } }
   })
 
+  try {
+    const admins = await prisma.employe.findMany({
+      where: { role: { niveau_acces: 'ADMIN' } },
+      select: { id: true }
+    })
+    for (const admin of admins) {
+      await prisma.notificationEmploye.create({
+        data: {
+          type: 'A_VERIFIER',
+          message: `Tâche à vérifier : "${tache.titre}" soumise par ${tache.employe.prenom} ${tache.employe.nom}`,
+          employeId: admin.id,
+          refId: tache.id
+        }
+      })
+    }
+  } catch {}
+
   return tache
 })

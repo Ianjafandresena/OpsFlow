@@ -6,9 +6,12 @@
         <div style="width: 26px; height: 26px; background: var(--accent-primary); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.7rem;">OF</div>
         <span style="font-size: 1rem; font-weight: 700; letter-spacing: -0.02em;">OpsFlow</span>
       </div>
-      <button class="btn btn-secondary btn-icon" @click="sidebarOpen = true">
-        <MenuIcon :size="20" />
-      </button>
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <NotificationBell />
+        <button class="btn btn-secondary btn-icon" @click="sidebarOpen = true">
+          <MenuIcon :size="20" />
+        </button>
+      </div>
     </div>
 
     <!-- Backdrop for mobile -->
