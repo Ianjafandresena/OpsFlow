@@ -137,6 +137,7 @@ model Tache {
   themeSponso    Theme?       @relation("ThemeSponsorisation", fields: [themeSponsoId], references: [id])
   aVerifier          Boolean   @default(false)
   motifModification  String?   @db.Text
+  urgent             Boolean   @default(false)
   demandes       DemandeTache[]
   entreesJournal EntreeJournal[]
   tachesLues     TacheLue[]

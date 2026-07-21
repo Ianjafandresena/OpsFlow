@@ -36,6 +36,7 @@
         <option value="en_cours">En cours</option>
         <option value="termine">Terminé</option>
         <option value="en_retard">En retard</option>
+        <option value="urgent">⚠ Urgent</option>
       </select>
     </div>
 
@@ -65,8 +66,9 @@
               </span>
             </td>
             <td>
-              <div style="font-weight:600; font-size:0.875rem;">
-                {{ t.titre }}
+              <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+                <span v-if="t.urgent" class="urgent-badge">⚠ URGENT</span>
+                <span style="font-weight:600; font-size:0.875rem;">{{ t.titre }}</span>
               </div>
               <div style="color:var(--text-secondary); font-size:0.75rem; margin-top:2px; max-width:250px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                 {{ t.description }}
@@ -110,6 +112,13 @@
               <div class="actions-cell">
                 <button class="btn btn-secondary btn-icon" @click="viewDetail(t)" title="Voir détails"><EyeIcon :size="14" /></button>
                 <button class="btn btn-secondary btn-icon" @click="openEdit(t)" title="Modifier"><EditIcon :size="14" /></button>
+                <button
+                  class="btn btn-icon"
+                  :style="t.urgent ? 'background:#ef444420; color:#dc2626; border:1px solid #ef444440;' : ''"
+                  :class="t.urgent ? '' : 'btn-secondary'"
+                  @click="toggleUrgent(t)"
+                  :title="t.urgent ? 'Retirer urgent' : 'Marquer urgent'"
+                ><AlertTriangleIcon :size="14" /></button>
                 <button class="btn-danger-ghost" @click="remove(t.id)" title="Supprimer"><TrashIcon :size="14" /></button>
               </div>
             </td>
@@ -342,7 +351,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Plus as PlusIcon, Search as SearchIcon, Edit as EditIcon, Trash2 as TrashIcon, Eye as EyeIcon } from 'lucide-vue-next'
+import { Plus as PlusIcon, Search as SearchIcon, Edit as EditIcon, Trash2 as TrashIcon, Eye as EyeIcon, AlertTriangle as AlertTriangleIcon } from 'lucide-vue-next'
 
 onMounted(async () => {
   await refreshTaches()
@@ -435,11 +444,22 @@ const filteredTasks = computed(() => {
       if (!isTermine) return false;
     } else if (filters.value.customStatus === 'en_retard') {
       if (!isRetard) return false;
+    } else if (filters.value.customStatus === 'urgent') {
+      if (!t.urgent) return false;
     }
-    
+
     return true
+  }).sort((a, b) => {
+    if (a.urgent && !b.urgent) return -1
+    if (!a.urgent && b.urgent) return 1
+    return 0
   })
 })
+
+const toggleUrgent = async (t) => {
+  await $fetch(`/api/taches/${t.id}/urgent`, { method: 'POST' })
+  await refreshTaches()
+}
 
 const openCreate = () => { editing.value=false; form.value=defaultForm(); modal.value=true }
 const openEdit = (t) => { 
@@ -525,10 +545,26 @@ const save = async () => {
   modal.value=false
 }
 
-const remove = (id) => { 
+const remove = (id) => {
   requireConfirm('Supprimer cette tâche ?', 'Êtes-vous sûr de vouloir supprimer cette tâche ?', async () => {
     await $fetch(`/api/taches/${id}`, { method: 'DELETE' })
     await refreshTaches()
   })
 }
 </script>
+
+<style scoped>
+.urgent-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #ef444415;
+  color: #dc2626;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: 99px;
+  border: 1px solid #ef444440;
+  flex-shrink: 0;
+  letter-spacing: 0.03em;
+}
+</style>
