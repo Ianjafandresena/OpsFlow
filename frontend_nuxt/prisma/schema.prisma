@@ -236,6 +236,7 @@ model EntreeJournal {
   tacheTerminee     Boolean   @default(false)
   aVerifier         Boolean   @default(false)
   motifModification String?   @db.Text
+  urgent            Boolean   @default(false)
 
   journalId   String
   journal     Journal  @relation(fields: [journalId], references: [id], onDelete: Cascade)
