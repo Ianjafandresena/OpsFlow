@@ -131,19 +131,24 @@ export default defineEventHandler(async (event) => {
 
     if (isTermine) {
       try {
-        // Chercher l'entrée de journal existante liée à cette tâche
-        const existingEntry = await prisma.entreeJournal.findFirst({
-          where: { tacheId: updatedTache.id }
+        // Marquer TOUTES les entrées de cette tâche comme terminées pour stopper le rollover
+        await prisma.entreeJournal.updateMany({
+          where: { tacheId: updatedTache.id },
+          data: { tacheTerminee: true }
         })
 
-        if (existingEntry) {
-          // Mettre à jour l'entrée existante
+        // Mettre à jour le contenu de l'entrée la plus récente
+        const latestEntry = await prisma.entreeJournal.findFirst({
+          where: { tacheId: updatedTache.id },
+          orderBy: { date: 'desc' }
+        })
+
+        if (latestEntry) {
           await prisma.entreeJournal.update({
-            where: { id: existingEntry.id },
+            where: { id: latestEntry.id },
             data: {
               contenu: `Tâche terminée : ${updatedTache.titre}`,
-              tacheTerminee: true,
-              lien: updatedTache.lien_livrable || existingEntry.lien
+              lien: updatedTache.lien_livrable || latestEntry.lien
             }
           })
         } else {

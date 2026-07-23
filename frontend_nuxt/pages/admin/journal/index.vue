@@ -1202,7 +1202,7 @@ const loadEditions = async () => {
   catch (e) { console.error(e) }
 }
 
-const toggleEntreeUrgent = async (entry: any) => {
+const toggleEntreeUrgent = async (entry) => {
   if (!entry) return
   await $fetch(`/api/entrees/${entry.id}/urgent`, { method: 'POST' })
   await loadEntries()

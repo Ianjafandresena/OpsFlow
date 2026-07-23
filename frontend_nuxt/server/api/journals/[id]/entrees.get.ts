@@ -156,9 +156,14 @@ export default defineEventHandler(async (event) => {
               if (e.tacheId && !seen.has(e.tacheId)) { seen.add(e.tacheId); return true }
               return false
             })
-            // Filtrer celles qui ont déjà une entrée aujourd'hui
+            // Filtrer celles qui ont déjà une entrée aujourd'hui, ou dont la tâche est terminée/publiée
             const tacheIdsToday = new Set(entrees.filter(e => e.tacheId).map(e => e.tacheId))
-            const toRollover = latestPerTache.filter(e => !tacheIdsToday.has(e.tacheId))
+            const toRollover = latestPerTache.filter(e => {
+              if (tacheIdsToday.has(e.tacheId)) return false
+              const lib = (e.tache?.statutTache?.libelle || '').toLowerCase()
+              if (lib.includes('termin') || lib.includes('publi')) return false
+              return true
+            })
 
             for (const prev of toRollover) {
               const used = usedSlotsByEmp[prev.employeId] || new Set<string>()

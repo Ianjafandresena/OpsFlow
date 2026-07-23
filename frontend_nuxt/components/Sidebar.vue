@@ -3,7 +3,8 @@
     <!-- Logo -->
     <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0 0.5rem; margin-bottom: 1.5rem;">
       <div style="width: 26px; height: 26px; background: var(--accent-primary); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.7rem;">OF</div>
-      <span style="font-size: 1rem; font-weight: 700; letter-spacing: -0.02em;">OpsFlow</span>
+      <span style="font-size: 1rem; font-weight: 700; letter-spacing: -0.02em; flex: 1;">OpsFlow</span>
+      <NotificationBell />
     </div>
 
     <nav style="display: flex; flex-direction: column; gap: 1.25rem; flex: 1; overflow-y: auto;">
