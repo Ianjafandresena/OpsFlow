@@ -206,6 +206,35 @@ export default defineEventHandler(async (event) => {
       }
     }
 
+    // Nettoyage : supprimer les entrées du jour pour des tâches terminées sur un jour précédent
+    if (dateStr) {
+      try {
+        const terminatedTacheIds = entrees
+          .filter(e => e.tacheTerminee && e.tacheId)
+          .map(e => e.tacheId as string)
+
+        if (terminatedTacheIds.length > 0) {
+          const prevTerminated = await prisma.entreeJournal.findMany({
+            where: {
+              tacheId: { in: terminatedTacheIds },
+              date: { lt: viewDate },
+              tacheTerminee: true
+            },
+            select: { tacheId: true }
+          })
+          const staleTaskIds = new Set(prevTerminated.map(e => e.tacheId))
+          const toClean = entrees.filter(e => e.tacheId && staleTaskIds.has(e.tacheId) && e.tacheTerminee)
+          if (toClean.length > 0) {
+            await prisma.entreeJournal.deleteMany({ where: { id: { in: toClean.map(e => e.id) } } })
+            const cleanIds = new Set(toClean.map(e => e.id))
+            entrees.splice(0, entrees.length, ...entrees.filter(e => !cleanIds.has(e.id)))
+          }
+        }
+      } catch (cleanErr) {
+        console.error('Cleanup terminated entries error:', cleanErr)
+      }
+    }
+
     return entrees
   } catch (error) {
     console.error("Erreur GET /journals/:id/entrees:", error)
