@@ -63,6 +63,7 @@ const go = async (n) => {
   } catch {}
   isOpen.value = false
 
+  if (n.type === 'DEADLINE') return router.push(isAdminUser ? '/admin' : '/employe/taches')
   if (n.type === 'A_VERIFIER') return router.push('/admin/taches/a-verifier')
   if (n.type === 'NOUVELLE_TACHE' || n.type === 'A_MODIFIER') return router.push(isAdminUser ? '/admin' : '/employe/taches')
   if (n.type === 'COMMENTAIRE') return router.push(isAdminUser ? '/admin/journal' : '/employe/journal')
@@ -197,6 +198,7 @@ onUnmounted(() => {
 .nb-type-A_VERIFIER { background: #f59e0b; }
 .nb-type-COMMENTAIRE { background: #10b981; }
 .nb-type-REGLEMENT { background: #8b5cf6; }
+.nb-type-DEADLINE { background: #f97316; }
 
 .nb-info { flex: 1; min-width: 0; }
 .nb-msg { font-size: 0.8rem; color: var(--text-primary); line-height: 1.35; }

@@ -51,6 +51,7 @@ model Employe {
   tachesLues     TacheLue[]
   notifications  NotificationEmploye[]
   entreeJournalsEditees  EntreeJournal[]  @relation("EntreeJournalEditeur")
+  historiqueTaches       HistoriqueTache[] @relation("HistoriqueAuteur")
   journalAcces           JournalAcces[]
   evaluations            EvaluationSalaire[]
   memos      Memo[]   @relation("MemoAuteur")
@@ -141,6 +142,7 @@ model Tache {
   demandes       DemandeTache[]
   entreesJournal EntreeJournal[]
   tachesLues     TacheLue[]
+  historique     HistoriqueTache[]
 }
 
 model Execution {
@@ -169,6 +171,17 @@ model DemandeTache {
   createdAt    DateTime @default(now())
   tacheId      String
   tache        Tache    @relation(fields: [tacheId], references: [id], onDelete: Cascade)
+}
+
+model HistoriqueTache {
+  id        String   @id @default(uuid())
+  tacheId   String
+  auteurId  String?
+  action    String   // CREATION | MODIFICATION | STATUT | VERIFICATION | URGENT
+  details   String?  @db.Text
+  createdAt DateTime @default(now())
+  tache     Tache    @relation(fields: [tacheId], references: [id], onDelete: Cascade)
+  auteur    Employe? @relation("HistoriqueAuteur", fields: [auteurId], references: [id], onDelete: SetNull)
 }
 
 enum TypeTache {

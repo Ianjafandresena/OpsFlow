@@ -10,6 +10,14 @@ export default defineEventHandler(async (event) => {
   })
 
   try {
+    const token = getCookie(event, 'auth_token')
+    const cu = token ? verifyToken(token) : null
+    await prisma.historiqueTache.create({
+      data: { tacheId: tache.id, auteurId: cu?.id || null, action: 'VERIFICATION' }
+    })
+  } catch {}
+
+  try {
     const admins = await prisma.employe.findMany({
       where: { role: { niveau_acces: 'ADMIN' } },
       select: { id: true }

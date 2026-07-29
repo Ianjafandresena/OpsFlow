@@ -12,10 +12,17 @@ export default defineEventHandler(async (event) => {
     data: { statutTacheId: statutTermine.id, aVerifier: false, motifModification: null }
   })
 
-  // Marquer les entrées associées comme terminées
+  // Marquer toutes les entrées comme terminées
   await prisma.entreeJournal.updateMany({
     where: { tacheId: id },
     data: { tacheTerminee: true }
+  })
+
+  // Supprimer les entrées des jours précédents — seule l'entrée du jour de clôture reste
+  const now = new Date()
+  const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  await prisma.entreeJournal.deleteMany({
+    where: { tacheId: id, date: { lt: todayUTC } }
   })
 
   return tache

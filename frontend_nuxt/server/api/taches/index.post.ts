@@ -1,5 +1,16 @@
+const TRACKED_FIELDS: Record<string, string> = {
+  titre: 'Titre', description: 'Description', date_limite: 'Deadline',
+  lien_livrable: 'Livrable', plateforme: 'Plateforme', type_pub: 'Type publication',
+  budget: 'Budget', audience: 'Audience', format_video: 'Format vidéo',
+  duree_cible: 'Durée cible', type_visuel: 'Type visuel', quantite: 'Quantité',
+  type_technique: 'Type technique', type_demarche: 'Démarche', outil_mailing: 'Outil mailing'
+}
+
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
+  const token = getCookie(event, 'auth_token')
+  const currentUser = token ? verifyToken(token) : null
+  const auteurId = currentUser?.id || null
 
   // Convertir les chaînes vides et undefined en null pour les clés étrangères
   const optionalFields = [
@@ -120,21 +131,54 @@ export default defineEventHandler(async (event) => {
 
   if (body.id) {
     // --- MODIFICATION ---
+    const oldTache = await prisma.tache.findUnique({
+      where: { id: body.id },
+      include: { statutTache: true }
+    })
+
     const updatedTache = await prisma.tache.update({
       where: { id: body.id },
       data,
       include: { statutTache: true }
     })
 
+    // Enregistrer historique
+    try {
+      const statutChange = oldTache?.statutTacheId !== body.statutTacheId
+      if (statutChange) {
+        await prisma.historiqueTache.create({
+          data: {
+            tacheId: updatedTache.id,
+            auteurId,
+            action: 'STATUT',
+            details: JSON.stringify({ ancien: oldTache?.statutTache?.libelle, nouveau: updatedTache.statutTache?.libelle })
+          }
+        })
+      }
+      const champs = Object.keys(TRACKED_FIELDS)
+        .filter(k => oldTache && String(oldTache[k as keyof typeof oldTache] ?? '') !== String((data as any)[k] ?? ''))
+        .map(k => ({ champ: TRACKED_FIELDS[k], ancien: oldTache![k as keyof typeof oldTache], nouveau: (data as any)[k] }))
+      if (champs.length > 0) {
+        await prisma.historiqueTache.create({
+          data: { tacheId: updatedTache.id, auteurId, action: 'MODIFICATION', details: JSON.stringify({ champs }) }
+        })
+      }
+    } catch {}
+
     const libelle = (updatedTache.statutTache?.libelle || updatedTache.statutTache?.nom || '').toLowerCase()
     const isTermine = libelle.includes('termin') || libelle.includes('publi')
 
     if (isTermine) {
       try {
-        // Marquer TOUTES les entrées de cette tâche comme terminées pour stopper le rollover
+        // Marquer toutes les entrées comme terminées
         await prisma.entreeJournal.updateMany({
           where: { tacheId: updatedTache.id },
           data: { tacheTerminee: true }
+        })
+
+        // Supprimer les entrées des jours précédents — seule l'entrée du jour de clôture reste
+        await prisma.entreeJournal.deleteMany({
+          where: { tacheId: updatedTache.id, date: { lt: todayUTC() } }
         })
 
         // Mettre à jour le contenu de l'entrée la plus récente
@@ -182,6 +226,12 @@ export default defineEventHandler(async (event) => {
   } else {
     // --- CRÉATION ---
     const newTache = await prisma.tache.create({ data })
+
+    try {
+      await prisma.historiqueTache.create({
+        data: { tacheId: newTache.id, auteurId, action: 'CREATION' }
+      })
+    } catch {}
 
     // Notification pour l'employé assigné
     try {
