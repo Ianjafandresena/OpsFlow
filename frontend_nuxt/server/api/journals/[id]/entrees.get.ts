@@ -206,9 +206,10 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // Nettoyage : supprimer les entrées du jour pour des tâches terminées sur un jour précédent
+    // Nettoyage : supprimer les entrées roulées-over pour des tâches déjà terminées avant ce jour
     if (dateStr) {
       try {
+        const cleanViewDate = new Date(dateStr)
         const terminatedTacheIds = entrees
           .filter(e => e.tacheTerminee && e.tacheId)
           .map(e => e.tacheId as string)
@@ -217,13 +218,25 @@ export default defineEventHandler(async (event) => {
           const prevTerminated = await prisma.entreeJournal.findMany({
             where: {
               tacheId: { in: terminatedTacheIds },
-              date: { lt: viewDate },
+              date: { lt: cleanViewDate },
               tacheTerminee: true
             },
             select: { tacheId: true }
           })
           const staleTaskIds = new Set(prevTerminated.map(e => e.tacheId))
-          const toClean = entrees.filter(e => e.tacheId && staleTaskIds.has(e.tacheId) && e.tacheTerminee)
+          const toClean = entrees.filter(e => {
+            if (!e.tacheId || !staleTaskIds.has(e.tacheId) || !e.tacheTerminee) return false
+            // Conserver si la terminaison a eu lieu aujourd'hui (updatedAt = viewDate)
+            if (e.updatedAt) {
+              const updatedDay = new Date(Date.UTC(
+                new Date(e.updatedAt).getUTCFullYear(),
+                new Date(e.updatedAt).getUTCMonth(),
+                new Date(e.updatedAt).getUTCDate()
+              ))
+              if (updatedDay.getTime() === cleanViewDate.getTime()) return false
+            }
+            return true
+          })
           if (toClean.length > 0) {
             await prisma.entreeJournal.deleteMany({ where: { id: { in: toClean.map(e => e.id) } } })
             const cleanIds = new Set(toClean.map(e => e.id))

@@ -186,6 +186,31 @@
             <div class="detail-desc">{{ tache.description }}</div>
           </div>
 
+          <!-- SECTION: Historique -->
+          <div class="detail-section">
+            <div class="detail-section-title">Historique des modifications</div>
+            <div v-if="loadingHistory" style="font-size:0.8rem; color:var(--text-muted);">Chargement…</div>
+            <div v-else-if="historique.length === 0" style="font-size:0.8rem; color:var(--text-muted);">Aucun historique</div>
+            <div v-else style="display:flex; flex-direction:column; gap:0; border-left:2px solid var(--border-light); margin-left:0.5rem; padding-left:1rem;">
+              <div v-for="h in historique" :key="h.id" style="position:relative; padding-bottom:0.75rem;">
+                <div style="position:absolute; left:-1.375rem; top:3px; width:10px; height:10px; border-radius:50%; border:2px solid var(--bg-surface);"
+                  :style="{background: actionColor(h.action)}"></div>
+                <div style="font-size:0.75rem; font-weight:600; color:var(--text-primary);">{{ actionLabel(h.action) }}</div>
+                <div v-if="h.action === 'STATUT' && h.details" style="font-size:0.72rem; color:var(--text-secondary); margin-top:1px;">
+                  {{ parseDetails(h.details)?.ancien }} → {{ parseDetails(h.details)?.nouveau }}
+                </div>
+                <div v-if="h.action === 'MODIFICATION' && h.details" style="font-size:0.72rem; color:var(--text-secondary); margin-top:1px;">
+                  <span v-for="c in parseDetails(h.details)?.champs" :key="c.champ" style="display:block;">
+                    {{ c.champ }} : <span style="text-decoration:line-through; color:#ef4444;">{{ c.ancien }}</span> → <span style="color:#10b981;">{{ c.nouveau }}</span>
+                  </span>
+                </div>
+                <div style="font-size:0.68rem; color:var(--text-muted); margin-top:2px;">
+                  {{ h.auteur ? h.auteur.prenom + ' ' + h.auteur.nom : 'Système' }} · {{ formatTime(h.createdAt) }}
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <!-- Footer -->
@@ -198,7 +223,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Eye as EyeIcon, X as XIcon } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -208,10 +233,22 @@ const props = defineProps({
 
 defineEmits(['close'])
 
+const historique = ref([])
+const loadingHistory = ref(false)
+
+watch(() => props.tache?.id, async (id) => {
+  if (!id) { historique.value = []; return }
+  loadingHistory.value = true
+  try {
+    historique.value = await $fetch(`/api/taches/${id}/historique`)
+  } catch { historique.value = [] }
+  finally { loadingHistory.value = false }
+}, { immediate: true })
+
 const isLate = computed(() => {
   if (!props.tache?.date_limite) return false
-  const st = props.tache?.statutTache?.nom
-  if (st === 'Terminé' || st === 'Publié') return false
+  const lib = (props.tache?.statutTache?.libelle || '').toLowerCase()
+  if (lib.includes('termin') || lib.includes('publi')) return false
   return new Date(props.tache.date_limite) < new Date()
 })
 
@@ -225,9 +262,28 @@ const formatDateShort = (d) => {
   return new Date(d).toLocaleDateString('fr-FR')
 }
 
+const formatTime = (d) => {
+  if (!d) return ''
+  return new Date(d).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })
+}
+
 const parsePlateforme = (val) => {
   if (!val) return []
   try { return JSON.parse(val) } catch { return val.split(',').map(s => s.trim()) }
+}
+
+const parseDetails = (str) => {
+  try { return JSON.parse(str) } catch { return null }
+}
+
+const actionLabel = (action) => {
+  const map = { CREATION: 'Tâche créée', MODIFICATION: 'Champs modifiés', STATUT: 'Statut changé', VERIFICATION: 'Soumise à vérification', URGENT: 'Marquée urgente' }
+  return map[action] || action
+}
+
+const actionColor = (action) => {
+  const map = { CREATION: '#10b981', MODIFICATION: '#3b82f6', STATUT: '#f59e0b', VERIFICATION: '#8b5cf6', URGENT: '#dc2626' }
+  return map[action] || '#9ca3af'
 }
 </script>
 
