@@ -1,6 +1,6 @@
 // POST /api/admin/cleanup-ghost-entries
-// Supprime les entrées journal fantômes des tâches terminées.
-// À appeler UNE FOIS manuellement. Données avant fromDate : intactes.
+// Supprime les entrées journal fantômes des tâches terminées/publiées.
+// Approche directe : lit les entrées, vérifie le statut de la tâche liée, supprime.
 export default defineEventHandler(async (event) => {
   const token = getCookie(event, 'auth_token')
   if (!token) throw createError({ statusCode: 401, statusMessage: 'Non authentifié' })
@@ -11,51 +11,43 @@ export default defineEventHandler(async (event) => {
   const fromDate = body?.fromDate || '2026-07-29'
   const cutoff = new Date(fromDate)
 
-  // Source 1 : tâches avec une entrée tacheTerminee:true AVANT la coupure
-  const terminatedBefore = await prisma.entreeJournal.findMany({
+  // Récupérer TOUTES les entrées à partir de la coupure liées à une tâche
+  const entries = await prisma.entreeJournal.findMany({
     where: {
-      date: { lt: cutoff },
-      tacheTerminee: true,
+      date: { gte: cutoff },
       tacheId: { not: null }
     },
-    select: { tacheId: true },
-    distinct: ['tacheId']
+    include: {
+      tache: {
+        select: { id: true, titre: true, statutTache: { select: { libelle: true } } }
+      }
+    }
   })
 
-  // Source 2 : tâches dont le statut actuel est "Terminé" ou "Publié"
-  // (les entrées historiques peuvent avoir été supprimées par notre fix terminer.post.ts)
-  const terminatedTaches = await prisma.tache.findMany({
-    where: {
-      OR: [
-        { statutTache: { libelle: { contains: 'ermin', mode: 'insensitive' } } },
-        { statutTache: { libelle: { contains: 'ubli', mode: 'insensitive' } } }
-      ],
-      entreesJournal: { some: { date: { gte: cutoff } } }
-    },
-    select: { id: true }
+  // Filtrer : entrées dont la tâche est "Terminée" ou "Publiée"
+  const toDelete = entries.filter(e => {
+    const lib = (e.tache?.statutTache?.libelle || '').toLowerCase()
+    return lib.includes('termin') || lib.includes('ubli')
   })
 
-  const tacheIdSet = new Set([
-    ...terminatedBefore.map(e => e.tacheId as string),
-    ...terminatedTaches.map(t => t.id)
-  ])
-
-  if (tacheIdSet.size === 0) {
-    return { deleted: 0, tachesAffectees: 0, fromDate, message: 'Aucune entrée fantôme trouvée' }
+  if (toDelete.length === 0) {
+    return {
+      deleted: 0,
+      totalEntries: entries.length,
+      fromDate,
+      message: 'Aucune entrée fantôme trouvée parmi ' + entries.length + ' entrées'
+    }
   }
 
-  // Supprimer toutes les entrées pour ces tâches à partir de la date de coupure
   const result = await prisma.entreeJournal.deleteMany({
-    where: {
-      tacheId: { in: [...tacheIdSet] },
-      date: { gte: cutoff }
-    }
+    where: { id: { in: toDelete.map(e => e.id) } }
   })
 
   return {
     deleted: result.count,
-    tachesAffectees: tacheIdSet.size,
+    totalEntries: entries.length,
     fromDate,
-    message: `${result.count} entrées fantômes supprimées pour ${tacheIdSet.size} tâche(s) terminée(s)`
+    tachesAffectees: new Set(toDelete.map(e => e.tacheId)).size,
+    message: `${result.count} entrées fantômes supprimées`
   }
 })
