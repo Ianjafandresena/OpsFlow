@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
     prisma.tache.findMany({
       where: { aVerifier: true },
       include: {
-        employe: { select: { id: true, nom: true, prenom: true, poste: { select: { titre_poste: true, departement: { select: { nom_departement: true } } } } } },
+        employe: { select: { id: true, nom: true, prenom: true, role: { select: { niveau_acces: true } }, poste: { select: { titre_poste: true } } } },
         statutTache: true,
         edition: { select: { id: true, licence: { select: { sigle: true } }, ville: { select: { nom_ville: true } } } }
       },
@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
     prisma.entreeJournal.findMany({
       where: { aVerifier: true, tacheId: null },
       include: {
-        employe: { select: { id: true, nom: true, prenom: true, poste: { select: { titre_poste: true, departement: { select: { nom_departement: true } } } } } },
+        employe: { select: { id: true, nom: true, prenom: true, role: { select: { niveau_acces: true } }, poste: { select: { titre_poste: true } } } },
         journal: { select: { id: true, nom: true } },
         commentaires: { orderBy: { createdAt: 'asc' } }
       },

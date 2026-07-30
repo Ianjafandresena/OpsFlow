@@ -246,6 +246,9 @@
                               <button @click.stop="terminerEntreeInline(getEntry(emp.id, slot))" class="btn btn-sm" style="font-size:0.6rem;padding:0.1rem 0.3rem;background:#10b981;color:white;border:none;">✓ Terminer</button>
                               <button @click.stop="openModifInlineModal(getEntry(emp.id, slot))" class="btn btn-sm" style="font-size:0.6rem;padding:0.1rem 0.3rem;background:#f59e0b;color:white;border:none;">✎ Modifier</button>
                             </div>
+                            <div v-else-if="getEntry(emp.id, slot)?.tacheId && !getEntry(emp.id, slot)?.tacheTerminee" style="display:flex;gap:0.2rem;margin-top:0.3rem;">
+                              <button @click.stop="terminerEntreeInline(getEntry(emp.id, slot))" class="btn btn-sm" style="font-size:0.6rem;padding:0.1rem 0.3rem;background:#10b981;color:white;border:none;">✓ Terminer</button>
+                            </div>
                           </div>
                           <div class="entry-action-row">
                             <button

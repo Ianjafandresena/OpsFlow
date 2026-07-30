@@ -14,27 +14,17 @@
     <div v-if="loading" class="loading-state"><div class="spinner-sm"></div><span>Chargement...</span></div>
 
     <!-- Filtres -->
-    <div v-if="!loading && (taches.length > 0 || entreesManuelles.length > 0)" class="filters-bar">
-      <select v-model="filterDepartement" class="filter-select">
-        <option value="">Tous les départements</option>
-        <option v-for="dep in allDepartements" :key="dep" :value="dep">{{ dep }}</option>
-      </select>
-      <select v-model="filterEmploye" class="filter-select">
-        <option value="">Tous les employés</option>
-        <option v-for="emp in allEmployes" :key="emp.id" :value="emp.id">{{ emp.nom }}</option>
-      </select>
-      <button v-if="filterDepartement || filterEmploye" class="btn btn-secondary btn-sm" @click="filterDepartement='';filterEmploye=''">
-        Réinitialiser
-      </button>
-      <span v-if="filterDepartement || filterEmploye" style="font-size:0.8rem;color:var(--text-muted);margin-left:auto;">
+    <div v-if="!loading && totalRaw > 0" class="filters-bar">
+      <button v-for="f in posteFilters" :key="f.value" class="btn btn-sm" :class="filterPoste===f.value?'btn-primary':'btn-secondary'" style="font-size:0.7rem;padding:0.2rem 0.5rem;" @click="filterPoste=f.value">{{ f.label }}</button>
+      <span v-if="filterPoste !== 'TOUS'" style="font-size:0.8rem;color:var(--text-muted);margin-left:auto;">
         {{ totalCount }} résultat{{ totalCount !== 1 ? 's' : '' }} sur {{ totalRaw }}
       </span>
     </div>
 
     <div v-if="!loading && totalCount === 0" class="card" style="text-align:center;padding:3rem 2rem;">
       <ClipboardCheckIcon :size="40" style="color:var(--text-muted);margin:0 auto 1rem;" />
-      <p style="font-weight:600;margin-bottom:0.5rem;">{{ totalRaw === 0 ? 'Aucun élément en attente' : 'Aucun résultat pour ces filtres' }}</p>
-      <p style="color:var(--text-muted);font-size:0.875rem;">{{ totalRaw === 0 ? 'Tous les éléments soumis ont été traités.' : 'Essayez de modifier les filtres.' }}</p>
+      <p style="font-weight:600;margin-bottom:0.5rem;">{{ totalRaw === 0 ? 'Aucun élément en attente' : 'Aucun résultat pour ce filtre' }}</p>
+      <p style="color:var(--text-muted);font-size:0.875rem;">{{ totalRaw === 0 ? 'Tous les éléments soumis ont été traités.' : 'Essayez un autre filtre.' }}</p>
     </div>
 
     <div v-if="!loading && totalCount > 0" style="display:flex;flex-direction:column;gap:1.25rem;">
@@ -283,41 +273,27 @@ const detailChatRef = ref(null)
 const showModifInDetail = ref(false)
 const detailMotif = ref('')
 
-const filterDepartement = ref('')
-const filterEmploye = ref('')
+const filterPoste = ref('TOUS')
+
+const posteFilters = [
+  { value: 'TOUS',    label: 'Tous' },
+  { value: 'CM',      label: 'CM' },
+  { value: 'DEV',     label: 'Développeur' },
+  { value: 'CONTAIN', label: 'Contain' }
+]
+
+const matchesPoste = (item) => {
+  if (filterPoste.value === 'TOUS') return true
+  const role = item.employe?.role?.niveau_acces
+  if (filterPoste.value === 'CM')      return role === 'CM'
+  if (filterPoste.value === 'DEV')     return role === 'DEV'
+  if (filterPoste.value === 'CONTAIN') return role === 'DESIGNER' || role === 'MONTEUR'
+  return true
+}
 
 const totalRaw = computed(() => taches.value.length + entreesManuelles.value.length)
-
-const allDepartements = computed(() => {
-  const set = new Set()
-  ;[...taches.value, ...entreesManuelles.value].forEach(item => {
-    const dep = item.employe?.poste?.departement?.nom_departement
-    if (dep) set.add(dep)
-  })
-  return [...set].sort()
-})
-
-const allEmployes = computed(() => {
-  const map = new Map()
-  ;[...taches.value, ...entreesManuelles.value].forEach(item => {
-    const emp = item.employe
-    if (emp) map.set(emp.id, `${emp.prenom} ${emp.nom}`)
-  })
-  return [...map.entries()].map(([id, nom]) => ({ id, nom })).sort((a, b) => a.nom.localeCompare(b.nom))
-})
-
-const tachesFiltrees = computed(() => taches.value.filter(t => {
-  if (filterDepartement.value && t.employe?.poste?.departement?.nom_departement !== filterDepartement.value) return false
-  if (filterEmploye.value && t.employe?.id !== filterEmploye.value) return false
-  return true
-}))
-
-const entreesFiltrees = computed(() => entreesManuelles.value.filter(e => {
-  if (filterDepartement.value && e.employe?.poste?.departement?.nom_departement !== filterDepartement.value) return false
-  if (filterEmploye.value && e.employe?.id !== filterEmploye.value) return false
-  return true
-}))
-
+const tachesFiltrees = computed(() => taches.value.filter(matchesPoste))
+const entreesFiltrees = computed(() => entreesManuelles.value.filter(matchesPoste))
 const totalCount = computed(() => tachesFiltrees.value.length + entreesFiltrees.value.length)
 
 const detailLinks = computed(() => {
@@ -501,9 +477,7 @@ const envoyerModifDetail = async () => {
 .detail-link:hover { text-decoration:underline; }
 
 /* Filters */
-.filters-bar { display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;flex-wrap:wrap; }
-.filter-select { height:34px;padding:0 0.625rem;border:1px solid var(--border-light);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:0.8125rem;cursor:pointer;outline:none; }
-.filter-select:focus { border-color:var(--accent-primary); }
+.filters-bar { display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap; }
 
 /* Forms */
 .form-group { display:flex;flex-direction:column;gap:0.375rem; }
