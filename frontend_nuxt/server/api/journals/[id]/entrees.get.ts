@@ -206,10 +206,23 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // Nettoyage : supprimer les entrées roulées-over pour des tâches déjà terminées avant ce jour
+    // Nettoyage : supprimer les entrées roulées-over pour des tâches déjà terminées
     if (dateStr) {
       try {
         const cleanViewDate = new Date(dateStr)
+
+        // Cas 1 : entrée avec tacheTerminee: false mais tâche dont le statut est "Terminé"
+        // → ghost créé AVANT le fix (updateMany avait tourné avant la création de cette entrée)
+        const ghostByStatus = entrees.filter(e => {
+          if (!e.tacheId || e.tacheTerminee) return false
+          const lib = (e.tache?.statutTache?.libelle || '').toLowerCase()
+          return lib.includes('termin') || lib.includes('publi')
+        })
+        if (ghostByStatus.length > 0) {
+          await prisma.entreeJournal.deleteMany({ where: { id: { in: ghostByStatus.map((e: any) => e.id) } } })
+          const ghostIds = new Set(ghostByStatus.map((e: any) => e.id))
+          entrees.splice(0, entrees.length, ...entrees.filter(e => !ghostIds.has(e.id)))
+        }
         const terminatedTacheIds = entrees
           .filter(e => e.tacheTerminee && e.tacheId)
           .map(e => e.tacheId as string)
