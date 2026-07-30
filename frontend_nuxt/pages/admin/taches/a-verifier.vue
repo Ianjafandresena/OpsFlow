@@ -13,19 +13,37 @@
 
     <div v-if="loading" class="loading-state"><div class="spinner-sm"></div><span>Chargement...</span></div>
 
-    <div v-else-if="totalCount === 0" class="card" style="text-align:center;padding:3rem 2rem;">
-      <ClipboardCheckIcon :size="40" style="color:var(--text-muted);margin:0 auto 1rem;" />
-      <p style="font-weight:600;margin-bottom:0.5rem;">Aucun élément en attente</p>
-      <p style="color:var(--text-muted);font-size:0.875rem;">Tous les éléments soumis ont été traités.</p>
+    <!-- Filtres -->
+    <div v-if="!loading && (taches.length > 0 || entreesManuelles.length > 0)" class="filters-bar">
+      <select v-model="filterDepartement" class="filter-select">
+        <option value="">Tous les départements</option>
+        <option v-for="dep in allDepartements" :key="dep" :value="dep">{{ dep }}</option>
+      </select>
+      <select v-model="filterEmploye" class="filter-select">
+        <option value="">Tous les employés</option>
+        <option v-for="emp in allEmployes" :key="emp.id" :value="emp.id">{{ emp.nom }}</option>
+      </select>
+      <button v-if="filterDepartement || filterEmploye" class="btn btn-secondary btn-sm" @click="filterDepartement='';filterEmploye=''">
+        Réinitialiser
+      </button>
+      <span v-if="filterDepartement || filterEmploye" style="font-size:0.8rem;color:var(--text-muted);margin-left:auto;">
+        {{ totalCount }} résultat{{ totalCount !== 1 ? 's' : '' }} sur {{ totalRaw }}
+      </span>
     </div>
 
-    <div v-else style="display:flex;flex-direction:column;gap:1.25rem;">
+    <div v-if="!loading && totalCount === 0" class="card" style="text-align:center;padding:3rem 2rem;">
+      <ClipboardCheckIcon :size="40" style="color:var(--text-muted);margin:0 auto 1rem;" />
+      <p style="font-weight:600;margin-bottom:0.5rem;">{{ totalRaw === 0 ? 'Aucun élément en attente' : 'Aucun résultat pour ces filtres' }}</p>
+      <p style="color:var(--text-muted);font-size:0.875rem;">{{ totalRaw === 0 ? 'Tous les éléments soumis ont été traités.' : 'Essayez de modifier les filtres.' }}</p>
+    </div>
+
+    <div v-if="!loading && totalCount > 0" style="display:flex;flex-direction:column;gap:1.25rem;">
 
       <!-- Tâches assignées -->
-      <div v-if="taches.length > 0" class="card" style="padding:0;overflow:hidden;">
+      <div v-if="tachesFiltrees.length > 0" class="card" style="padding:0;overflow:hidden;">
         <div style="padding:0.75rem 1.25rem;background:var(--bg-surface-hover);border-bottom:1px solid var(--border-light);font-size:0.8125rem;font-weight:700;display:flex;align-items:center;gap:0.5rem;">
           <ClipboardCheckIcon :size="14" /> Tâches assignées
-          <span style="background:#f59e0b20;color:#d97706;border:1px solid #f59e0b40;font-size:0.7rem;font-weight:700;padding:0.1rem 0.4rem;border-radius:99px;">{{ taches.length }}</span>
+          <span style="background:#f59e0b20;color:#d97706;border:1px solid #f59e0b40;font-size:0.7rem;font-weight:700;padding:0.1rem 0.4rem;border-radius:99px;">{{ tachesFiltrees.length }}</span>
         </div>
         <table class="data-table">
           <thead>
@@ -38,7 +56,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="t in taches" :key="t.id" class="verif-row clickable-row" @click="openDetail('tache', t)">
+            <tr v-for="t in tachesFiltrees" :key="t.id" class="verif-row clickable-row" @click="openDetail('tache', t)">
               <td>
                 <div class="emp-cell">
                   <div class="emp-avatar-sm">{{ initials(t.employe) }}</div>
@@ -71,10 +89,10 @@
       </div>
 
       <!-- Entrées manuelles de journal -->
-      <div v-if="entreesManuelles.length > 0" class="card" style="padding:0;overflow:hidden;">
+      <div v-if="entreesFiltrees.length > 0" class="card" style="padding:0;overflow:hidden;">
         <div style="padding:0.75rem 1.25rem;background:var(--bg-surface-hover);border-bottom:1px solid var(--border-light);font-size:0.8125rem;font-weight:700;display:flex;align-items:center;gap:0.5rem;">
           <span style="font-size:0.9rem;">✎</span> Notes de journal
-          <span style="background:#f59e0b20;color:#d97706;border:1px solid #f59e0b40;font-size:0.7rem;font-weight:700;padding:0.1rem 0.4rem;border-radius:99px;">{{ entreesManuelles.length }}</span>
+          <span style="background:#f59e0b20;color:#d97706;border:1px solid #f59e0b40;font-size:0.7rem;font-weight:700;padding:0.1rem 0.4rem;border-radius:99px;">{{ entreesFiltrees.length }}</span>
         </div>
         <table class="data-table">
           <thead>
@@ -87,7 +105,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="e in entreesManuelles" :key="e.id" class="verif-row clickable-row" @click="openDetail('entree', e)">
+            <tr v-for="e in entreesFiltrees" :key="e.id" class="verif-row clickable-row" @click="openDetail('entree', e)">
               <td>
                 <div class="emp-cell">
                   <div class="emp-avatar-sm">{{ initials(e.employe) }}</div>
@@ -265,7 +283,42 @@ const detailChatRef = ref(null)
 const showModifInDetail = ref(false)
 const detailMotif = ref('')
 
-const totalCount = computed(() => taches.value.length + entreesManuelles.value.length)
+const filterDepartement = ref('')
+const filterEmploye = ref('')
+
+const totalRaw = computed(() => taches.value.length + entreesManuelles.value.length)
+
+const allDepartements = computed(() => {
+  const set = new Set()
+  ;[...taches.value, ...entreesManuelles.value].forEach(item => {
+    const dep = item.employe?.poste?.departement?.nom_departement
+    if (dep) set.add(dep)
+  })
+  return [...set].sort()
+})
+
+const allEmployes = computed(() => {
+  const map = new Map()
+  ;[...taches.value, ...entreesManuelles.value].forEach(item => {
+    const emp = item.employe
+    if (emp) map.set(emp.id, `${emp.prenom} ${emp.nom}`)
+  })
+  return [...map.entries()].map(([id, nom]) => ({ id, nom })).sort((a, b) => a.nom.localeCompare(b.nom))
+})
+
+const tachesFiltrees = computed(() => taches.value.filter(t => {
+  if (filterDepartement.value && t.employe?.poste?.departement?.nom_departement !== filterDepartement.value) return false
+  if (filterEmploye.value && t.employe?.id !== filterEmploye.value) return false
+  return true
+}))
+
+const entreesFiltrees = computed(() => entreesManuelles.value.filter(e => {
+  if (filterDepartement.value && e.employe?.poste?.departement?.nom_departement !== filterDepartement.value) return false
+  if (filterEmploye.value && e.employe?.id !== filterEmploye.value) return false
+  return true
+}))
+
+const totalCount = computed(() => tachesFiltrees.value.length + entreesFiltrees.value.length)
 
 const detailLinks = computed(() => {
   if (!selectedItem.value?.lien) return []
@@ -446,6 +499,11 @@ const envoyerModifDetail = async () => {
 /* Detail links */
 .detail-link { display:inline-flex;align-items:center;gap:0.35rem;color:var(--accent-primary);font-size:0.8rem;text-decoration:none;word-break:break-all; }
 .detail-link:hover { text-decoration:underline; }
+
+/* Filters */
+.filters-bar { display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;flex-wrap:wrap; }
+.filter-select { height:34px;padding:0 0.625rem;border:1px solid var(--border-light);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:0.8125rem;cursor:pointer;outline:none; }
+.filter-select:focus { border-color:var(--accent-primary); }
 
 /* Forms */
 .form-group { display:flex;flex-direction:column;gap:0.375rem; }
