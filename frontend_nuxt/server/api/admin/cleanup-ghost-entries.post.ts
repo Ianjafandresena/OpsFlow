@@ -30,6 +30,20 @@ export default defineEventHandler(async (event) => {
     return lib.includes('termin') || lib.includes('ubli')
   })
 
+  // Mode debug : retourner les statuts sans supprimer
+  if (body?.debug) {
+    return {
+      totalEntries: entries.length,
+      entries: entries.map(e => ({
+        date: e.date,
+        tacheTerminee: e.tacheTerminee,
+        titre: e.tache?.titre,
+        statut: e.tache?.statutTache?.libelle,
+        tacheId: e.tacheId
+      }))
+    }
+  }
+
   if (toDelete.length === 0) {
     return {
       deleted: 0,
