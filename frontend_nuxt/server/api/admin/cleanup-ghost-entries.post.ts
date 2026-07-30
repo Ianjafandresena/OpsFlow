@@ -1,6 +1,6 @@
 // POST /api/admin/cleanup-ghost-entries
-// Supprime les entrées journal fantômes pour les tâches déjà terminées avant une date de coupure.
-// À appeler UNE FOIS manuellement après le déploiement du fix rollover.
+// Supprime les entrées journal fantômes des tâches terminées.
+// À appeler UNE FOIS manuellement. Données avant fromDate : intactes.
 export default defineEventHandler(async (event) => {
   const token = getCookie(event, 'auth_token')
   if (!token) throw createError({ statusCode: 401, statusMessage: 'Non authentifié' })
@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   const fromDate = body?.fromDate || '2026-07-29'
   const cutoff = new Date(fromDate)
 
-  // 1. Trouver les tâches qui ont au moins une entrée terminée AVANT la date de coupure
+  // Source 1 : tâches avec une entrée tacheTerminee:true AVANT la coupure
   const terminatedBefore = await prisma.entreeJournal.findMany({
     where: {
       date: { lt: cutoff },
@@ -22,13 +22,29 @@ export default defineEventHandler(async (event) => {
     distinct: ['tacheId']
   })
 
-  const tacheIdSet = new Set(terminatedBefore.map(e => e.tacheId as string))
+  // Source 2 : tâches dont le statut actuel est "Terminé" ou "Publié"
+  // (les entrées historiques peuvent avoir été supprimées par notre fix terminer.post.ts)
+  const terminatedTaches = await prisma.tache.findMany({
+    where: {
+      OR: [
+        { statutTache: { libelle: { contains: 'ermin', mode: 'insensitive' } } },
+        { statutTache: { libelle: { contains: 'ubli', mode: 'insensitive' } } }
+      ],
+      entreesJournal: { some: { date: { gte: cutoff } } }
+    },
+    select: { id: true }
+  })
+
+  const tacheIdSet = new Set([
+    ...terminatedBefore.map(e => e.tacheId as string),
+    ...terminatedTaches.map(t => t.id)
+  ])
 
   if (tacheIdSet.size === 0) {
-    return { deleted: 0, tachesAffectees: 0, message: 'Aucune entrée fantôme trouvée' }
+    return { deleted: 0, tachesAffectees: 0, fromDate, message: 'Aucune entrée fantôme trouvée' }
   }
 
-  // 3. Supprimer toutes les entrées pour ces tâches à partir de la date de coupure
+  // Supprimer toutes les entrées pour ces tâches à partir de la date de coupure
   const result = await prisma.entreeJournal.deleteMany({
     where: {
       tacheId: { in: [...tacheIdSet] },
@@ -40,6 +56,6 @@ export default defineEventHandler(async (event) => {
     deleted: result.count,
     tachesAffectees: tacheIdSet.size,
     fromDate,
-    message: `${result.count} entrées fantômes supprimées pour ${tacheIdSet.size} tâche(s)`
+    message: `${result.count} entrées fantômes supprimées pour ${tacheIdSet.size} tâche(s) terminée(s)`
   }
 })
